@@ -1,0 +1,11 @@
+{
+  "permissions": {
+    "allow": [
+      "PowerShell(Get-ChildItem -Path \"C:\\\\Asztal\\\\BME\\\\4_felev\\\\Net_jatekfejlesztes\\\\FishSim\\\\FishSim\" -Force | Where-Object {$_.Extension -match '\\\\.\\(json|xml|manifest|config\\)$' -or $_.Name -match '\\\\.vscode|\\\\.config'} | Select-Object Name, FullName)",
+      "PowerShell(New-Item *)",
+      "PowerShell(Get-ChildItem \"graphify-out\" -Force -ErrorAction SilentlyContinue | ForEach-Object { $_.Name })",
+      "PowerShell(Get-ChildItem \"graphify-out/obsidian\" -Force -ErrorAction SilentlyContinue | ForEach-Object { $_.Name } | Select-Object -First 30)",
+      "Bash(dotnet build *)"
+    ]
+  }
+}

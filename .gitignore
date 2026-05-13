@@ -1,0 +1,54 @@
+## .NET / Visual Studio
+bin/
+obj/
+[Bb]in/
+[Oo]bj/
+
+## Visual Studio
+.vs/
+*.user
+*.rsuser
+*.suo
+*.userosscache
+*.sln.docstates
+
+## Build results
+[Dd]ebug/
+[Rr]elease/
+[Bb]uild/
+[Ll]ogs/
+
+## NuGet
+*.nupkg
+*.snupkg
+packages/
+*.nuget.props
+*.nuget.targets
+
+## OS files
+.DS_Store
+Thumbs.db
+
+## Rider
+.idea/
+*.sln.iml
+
+## Visual Studio Code
+.vscode/
+
+## Test results
+TestResults/
+
+## Others
+*.cache
+*.log
+*.pidb
+*.svd
+*.vsp
+*.vspx
+*.vspscc
+*.pdb
+*.opendb
+*.VC.db
+CLAUDE.md
+graphify-out/
