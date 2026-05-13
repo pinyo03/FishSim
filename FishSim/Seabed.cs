@@ -62,6 +62,8 @@ namespace FishSim
             this.effect = effect;
             effect.Parameters["DiffuseMap"].SetValue(tex);
             effect.Parameters["SunDir"].SetValue(sunDir);
+            effect.Parameters["TileCount"].SetValue(20f);           // 20x ismétlés
+            effect.Parameters["BlendWidth"].SetValue(10f / 1024f);  // 10px átmenet 1024px textúrán
         }
         public void Draw(Matrix world, Camera cam)
         {

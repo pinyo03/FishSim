@@ -148,7 +148,7 @@ namespace FishSim
             var seabedBedrockLevel = Matrix.CreateTranslation(0, -0.05f, 0);
             var seabedTransforms = new Matrix[]
             {
-                seabedBedrockLevel * Matrix.CreateScale(100, 1.5f , 100) * Matrix.CreateTranslation(0, 0, 0)
+                seabedBedrockLevel * Matrix.CreateScale(500, 4f , 500) * Matrix.CreateTranslation(-250, 0, -250)
             };
 
             GraphicsDevice.SetRenderTarget(heightMap);
