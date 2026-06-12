@@ -63,7 +63,7 @@ namespace FishSim
         {
             _spriteBatch = new SpriteBatch(GraphicsDevice);
             sky = new Sky(GraphicsDevice, Content.Load<Texture2D>("fishsky1"));
-            fish = new Fish(GraphicsDevice, Content.Load<Model>("fishClown"), sky.SunDir);
+            fish = new Fish(GraphicsDevice, Content.Load<Model>("fish1"), Content.Load<Texture2D>("relebook-export-ggach148215-001"), sky.SunDir);
             fishes.Add(fish);
             seabed = new Seabed(GraphicsDevice, Content.Load<Texture2D>("seabedColor"),
                 Content.Load<Texture2D>("seabedHeight"), sky.SunDir, Content.Load<Effect>("Seabed"));

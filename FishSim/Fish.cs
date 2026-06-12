@@ -15,32 +15,32 @@ namespace FishSim
         public Vector3 Up => 2 * verlets[4].Pos - verlets[0].Pos - verlets[2].Pos;
         public Matrix WorldTransform => Matrix.CreateWorld(Position, Vector3.Normalize(Direction), Vector3.Normalize(Up));
         Model model;
-        Matrix localTransform = Matrix.CreateScale(0.3f) * Matrix.CreateRotationY(MathHelper.Pi) * Matrix.CreateRotationX(MathHelper.PiOver2);
+        Matrix localTransform = Matrix.CreateScale(0.1f) * Matrix.CreateRotationY(MathHelper.Pi) * Matrix.CreateRotationX(MathHelper.PiOver2);
         public Fish(Fish fish) : base(fish)
         {
             model = fish.model;
             posErrors = new Vector3[verlets.Length];
         }
-        public Fish(GraphicsDevice dev, Model model, Vector3 sunDir)
+        public Fish(GraphicsDevice dev, Model model, Texture2D texture, Vector3 sunDir)
         {
             this.model = model;
-            int meshCount = 0;
             foreach (var mesh in model.Meshes)
             {
-                if (meshCount++ > 3)
-                    break;
-                foreach (BasicEffect effect in mesh.Effects)
+                foreach (var e in mesh.Effects)
                 {
+                    if (e is not BasicEffect effect) continue;
+                    effect.Texture = texture;
+                    effect.TextureEnabled = texture != null;
                     effect.LightingEnabled = true;
                     effect.PreferPerPixelLighting = true;
+                    effect.AmbientLightColor = new Vector3(0.3f, 0.3f, 0.3f);
                     effect.DirectionalLight0.Enabled = true;
-                    effect.DirectionalLight0.Direction = -sunDir;
-                    effect.DirectionalLight0.DiffuseColor = new Vector3(1f, 1f, 1f);
-                    effect.DirectionalLight0.SpecularColor = new Vector3(1, 1, 1);
+                    effect.DirectionalLight0.Direction = Vector3.Normalize(-sunDir);
+                    effect.DirectionalLight0.DiffuseColor = new Vector3(0.7f, 0.7f, 0.7f);
+                    effect.DirectionalLight0.SpecularColor = new Vector3(0.2f, 0.2f, 0.2f);
                     effect.DirectionalLight1.Enabled = true;
                     effect.DirectionalLight1.Direction = Vector3.Down;
-                    effect.DirectionalLight1.DiffuseColor = new Vector3(0.8f, 0.8f, 0.8f);
-                    effect.PreferPerPixelLighting = true;
+                    effect.DirectionalLight1.DiffuseColor = new Vector3(0.2f, 0.2f, 0.2f);
                 }
             }
             float w = 0.2f, l = 1;
@@ -60,13 +60,11 @@ namespace FishSim
         }
         public void Draw(Camera cam)
         {
-            int meshCount = 0;
             foreach (var mesh in model.Meshes)
             {
-                if (meshCount++ > 3)
-                    break;
-                foreach (BasicEffect effect in mesh.Effects)
+                foreach (var e in mesh.Effects)
                 {
+                    if (e is not BasicEffect effect) continue;
                     effect.World = localTransform * WorldTransform;
                     effect.View = cam.View;
                     effect.Projection = cam.Projection;
