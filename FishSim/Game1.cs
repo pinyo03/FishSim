@@ -66,7 +66,7 @@ namespace FishSim
             fish = new Fish(GraphicsDevice, Content.Load<Model>("fish1"), Content.Load<Texture2D>("relebook-export-ggach148215-001"), sky.SunDir);
             fishes.Add(fish);
             seabed = new Seabed(GraphicsDevice, Content.Load<Texture2D>("seabedColor"),
-                Content.Load<Texture2D>("seabedHeight"), sky.SunDir, Content.Load<Effect>("Seabed"));
+                sky.SunDir, Content.Load<Effect>("Seabed"));
 
             var waterEffect = Content.Load<Effect>("Water");
             var normalMap = new Texture2D(GraphicsDevice, 1, 1, false, SurfaceFormat.Color);
@@ -172,7 +172,7 @@ namespace FishSim
             var seabedBedrockLevel = Matrix.CreateTranslation(0, -0.05f, 0);
             var seabedTransforms = new Matrix[]
             {
-                seabedBedrockLevel * Matrix.CreateScale(250, 2f, 250) * Matrix.CreateTranslation(-125, -3, -125)
+                seabedBedrockLevel * Matrix.CreateScale(5000, 40f, 5000) * Matrix.CreateTranslation(-2500, -60, -2500)
             };
 
             // 1. Height map

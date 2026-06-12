@@ -18,21 +18,40 @@ namespace FishSim
         VertexBuffer flatPlaneVB;
         IndexBuffer flatPlaneIB;
 
-        public Seabed(GraphicsDevice dev, Texture2D tex, Texture2D heightMapTex, Vector3 sunDir, Effect effect)
+        public Seabed(GraphicsDevice dev, Texture2D tex, Vector3 sunDir, Effect effect, SeabedGenerationSettings settings = null)
         {
-            int w = heightMapTex.Width;
-            int h = heightMapTex.Height;
-            uint[] hm = new uint[w * h];
-            var vbData = new VertexPositionNormalTexture[hm.Length];
-            heightMapTex.GetData(hm);
-            for (int i = 0; i < hm.Length; i++)
+            settings ??= new SeabedGenerationSettings();
+            int w = settings.Resolution;
+            int h = settings.Resolution;
+            var noise = new PerlinNoise(settings.Seed);
+
+            const float TileCount = 100f; // a shaderben használt diffúz tiling
+            var texData = new Color[tex.Width * tex.Height];
+            tex.GetData(texData);
+
+            var vbData = new VertexPositionNormalTexture[w * h];
+            for (int i = 0; i < vbData.Length; i++)
             {
-                float height = (hm[i] & 255) / 255.0f;
                 int x = i % w; int y = i / w;
-                var pos = new Vector3(x / (float)(w - 1), height, y / (float)(h - 1));
+                float u = x / (float)(w - 1);
+                float v = y / (float)(h - 1);
+                float n = noise.Fbm(u * settings.Frequency, v * settings.Frequency, settings.Octaves, settings.Persistence, settings.Lacunarity);
+                float height = (n + 1f) * 0.5f * settings.HeightScale;
+
+                // A diffúz textúra fényessége alapján kis mértékű magasságeltolás (ugyanazzal a tilinggel, mint a shader).
+                float tu = (u * TileCount) % 1f;
+                float tv = (v * TileCount) % 1f;
+                int tx = (int)(tu * tex.Width) % tex.Width;
+                int ty = (int)(tv * tex.Height) % tex.Height;
+                var color = texData[ty * tex.Width + tx];
+                float luminance = (color.R + color.G + color.B) / (3f * 255f);
+                height += (luminance - 0.5f) * settings.ColorHeightInfluence;
+
+                height = MathHelper.Clamp(height, 0f, 1f);
+                var pos = new Vector3(u, height, v);
                 vbData[i] = new VertexPositionNormalTexture(pos, Vector3.Up, new Vector2(pos.X, pos.Z));
             }
-            for (int i = 0; i < hm.Length; i++)
+            for (int i = 0; i < vbData.Length; i++)
             {
                 int x = i % w;
                 int y = i / w;
@@ -124,7 +143,7 @@ namespace FishSim
             var dev = flatPlaneVB.GraphicsDevice;
             dev.SetVertexBuffer(flatPlaneVB);
             dev.Indices = flatPlaneIB;
-            var sandWorld = Matrix.CreateTranslation(0, -3, 0);
+            var sandWorld = Matrix.CreateTranslation(0, -60, 0);
             effect.Parameters["WorldViewProj"].SetValue(sandWorld * cam.View * cam.Projection);
             effect.Parameters["WorldIT"].SetValue(Matrix.Transpose(Matrix.Invert(sandWorld)));
             effect.Parameters["World"].SetValue(sandWorld);
