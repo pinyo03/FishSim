@@ -14,6 +14,10 @@ namespace FishSim
         VertexBuffer vertexBuffer;
         IndexBuffer indexBuffer;
         Effect effect;
+
+        VertexBuffer flatPlaneVB;
+        IndexBuffer flatPlaneIB;
+
         public Seabed(GraphicsDevice dev, Texture2D tex, Texture2D heightMapTex, Vector3 sunDir, Effect effect)
         {
             int w = heightMapTex.Width;
@@ -62,8 +66,25 @@ namespace FishSim
             this.effect = effect;
             effect.Parameters["DiffuseMap"].SetValue(tex);
             effect.Parameters["SunDir"].SetValue(sunDir);
-            effect.Parameters["TileCount"].SetValue(20f);           // 20x ismétlés
+            effect.Parameters["TileCount"].SetValue(100f);           // 100x ismétlés
             effect.Parameters["BlendWidth"].SetValue(10f / 1024f);  // 10px átmenet 1024px textúrán
+
+            // A konstruktor végére, az effect paraméterek után:
+            float ext = 50000f;
+            var flatVerts = new VertexPosition[]
+            {
+                new(new Vector3(-ext, 0f, -ext)),
+                new(new Vector3( ext, 0f, -ext)),
+                new(new Vector3(-ext, 0f,  ext)),
+                new(new Vector3( ext, 0f,  ext)),
+            };
+            flatPlaneVB = new VertexBuffer(dev, VertexPosition.VertexDeclaration, 4, BufferUsage.WriteOnly);
+            flatPlaneVB.SetData(flatVerts);
+
+            flatPlaneIB = new IndexBuffer(dev, typeof(ushort), 4, BufferUsage.WriteOnly);
+            flatPlaneIB.SetData(new ushort[] { 0, 1, 2, 3 });
+
+            effect.Parameters["SandColor"].SetValue(new Vector3(123f / 255f, 112f / 255f, 105f / 255f));
         }
         public void Draw(Matrix world, Camera cam)
         {
@@ -97,6 +118,18 @@ namespace FishSim
             effect.Parameters["World"].SetValue(world);
             effect.CurrentTechnique.Passes[2].Apply();
             dev.DrawIndexedPrimitives(PrimitiveType.TriangleStrip, 0, 0, indexBuffer.IndexCount - 2);
+        }
+        public void DrawSandPlane(Camera cam)
+        {
+            var dev = flatPlaneVB.GraphicsDevice;
+            dev.SetVertexBuffer(flatPlaneVB);
+            dev.Indices = flatPlaneIB;
+            var sandWorld = Matrix.CreateTranslation(0, -3, 0);
+            effect.Parameters["WorldViewProj"].SetValue(sandWorld * cam.View * cam.Projection);
+            effect.Parameters["WorldIT"].SetValue(Matrix.Transpose(Matrix.Invert(sandWorld)));
+            effect.Parameters["World"].SetValue(sandWorld);
+            effect.Techniques["SandPlane"].Passes[0].Apply();
+            dev.DrawIndexedPrimitives(PrimitiveType.TriangleStrip, 0, 0, 2);
         }
     }
 }

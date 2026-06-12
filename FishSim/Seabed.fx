@@ -49,7 +49,6 @@ float4 SampleTiled(float2 uv)
 
 float4 PS(VSO vso) : COLOR
 {
-    clip(vso.worldPos.y);
     float Ld = saturate(dot(vso.normal, SunDir) + dot(vso.normal, float3(0, 1, 0)));
     Ld = Ld / (1 + Ld) * (1 + Ld / 1.5);
     float4 diffuse = SampleTiled(vso.tex * TileCount) * Ld;
@@ -68,7 +67,7 @@ float4 PS_Refraction(VSO vso) : COLOR
     return float4(diffuse.rgb, 1);
 }
 
-technique Island
+technique Seabed
 {
     pass P0
     {
@@ -84,5 +83,34 @@ technique Island
     {
         VertexShader = compile vs_4_0_level_9_3 VS();
         PixelShader = compile ps_4_0_level_9_3 PS_Refraction();
+    }
+}
+
+// --- Sand Plane ---
+float3 SandColor;
+
+struct VSO_Sand
+{
+    float4 pos : POSITION;
+};
+
+VSO_Sand VS_Sand(float4 inPos : POSITION)
+{
+    VSO_Sand ret;
+    ret.pos = mul(inPos, WorldViewProj);
+    return ret;
+}
+
+float4 PS_Sand() : COLOR
+{
+    return float4(SandColor, 1.0);
+}
+
+technique SandPlane
+{
+    pass P0
+    {
+        VertexShader = compile vs_4_0_level_9_3 VS_Sand();
+        PixelShader = compile ps_4_0_level_9_3 PS_Sand();
     }
 }

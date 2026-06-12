@@ -15,7 +15,7 @@ namespace FishSim
         public Vector3 Up => 2 * verlets[4].Pos - verlets[0].Pos - verlets[2].Pos;
         public Matrix WorldTransform => Matrix.CreateWorld(Position, Vector3.Normalize(Direction), Vector3.Normalize(Up));
         Model model;
-        Matrix localTransform = Matrix.CreateScale(0.3f) * Matrix.CreateRotationY(MathHelper.Pi);
+        Matrix localTransform = Matrix.CreateScale(0.3f) * Matrix.CreateRotationY(MathHelper.Pi) * Matrix.CreateRotationX(MathHelper.PiOver2);
         public Fish(Fish fish) : base(fish)
         {
             model = fish.model;
