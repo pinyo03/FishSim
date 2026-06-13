@@ -1,6 +1,7 @@
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 using Microsoft.Xna.Framework.Input;
+using FishSim.Particles;
 using System;
 using System.Collections.Generic;
 
@@ -15,6 +16,7 @@ namespace FishSim
         Fish fish;
         List<Fish> fishes = new List<Fish>();
         Seabed seabed;
+        ParticleSystem particles;
 
         public bool fishCam = true;
         bool tabReleased = true;
@@ -51,6 +53,13 @@ namespace FishSim
             fishes.Add(fish);
             seabed = new Seabed(GraphicsDevice, Content.Load<Texture2D>("seabedColor"),
                 sky.SunDir, Content.Load<Effect>("Seabed"));
+
+            // A rétegek a ParticleLayerSettings alapértékeit használják (méret, szín, drift, wobble stb.
+            // mind ott állítható); itt csak a seedet és a blend módot különböztetjük meg réteg szerint.
+            particles = new ParticleSystem(GraphicsDevice,
+                new ParticleLayerSettings { Seed = 1001, Blend = BlendState.NonPremultiplied },
+                new ParticleLayerSettings { Seed = 2002, Blend = BlendState.Additive },
+                new ParticleLayerSettingsBubbles());
 
             // Initialise look angles to match the fish's starting heading
             var flatDir = Vector3.Normalize(new Vector3(fish.Direction.X, 0, fish.Direction.Z));
@@ -140,6 +149,8 @@ namespace FishSim
             foreach (var f in fishes)
                 f.Step();
 
+            particles.Update(gameTime, Camera.Main.Position);
+
             base.Update(gameTime);
         }
 
@@ -170,6 +181,8 @@ namespace FishSim
                 seabed.Draw(m, Camera.Main);
 
             seabed.DrawSandPlane(Camera.Main);
+
+            particles.Draw(Camera.Main);
 
             base.Draw(gameTime);
         }
