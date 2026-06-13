@@ -10,19 +10,19 @@ namespace FishSim.Particles
     {
         public ParticleLayerSettingsBubbles()
         {
-            Count = 50000;
+            Count = 20000;
             Seed = 3003;
 
-            VolumeHalfExtents = new Vector3(20, 20, 20);
+            VolumeHalfExtents = new Vector3(5, 5, 5);
 
-            MinSize = 0.0095f;
-            MaxSize = 0.028f;
+            MinSize = 0.003f;
+            MaxSize = 0.0095f;
 
-            ColorA = new Color(10, 90, 100, 100);
-            ColorB = new Color(25, 120, 90, 100);
+            ColorA = new Color(10, 90, 100, 200);
+            ColorB = new Color(25, 120, 90, 200);
 
-            MinDriftSpeed = 0.03f;
-            MaxDriftSpeed = 1.0f;
+            MinDriftSpeed = 0.005f;
+            MaxDriftSpeed = 0.03f;
 
             MinWobbleAmplitude = 0.03f;
             MaxWobbleAmplitude = 0.12f;
