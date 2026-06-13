@@ -105,6 +105,11 @@ namespace FishSim
 
             effect.Parameters["SandColor"].SetValue(new Vector3(123f / 255f, 112f / 255f, 105f / 255f));
         }
+        public void UpdateCaustics(float time)
+        {
+            CausticsSettings.Apply(effect, time);
+        }
+
         public void Draw(Matrix world, Camera cam)
         {
             var dev = vertexBuffer.GraphicsDevice;
@@ -116,28 +121,6 @@ namespace FishSim
             effect.CurrentTechnique.Passes[0].Apply();
             dev.DrawIndexedPrimitives(PrimitiveType.TriangleStrip, 0, 0, indexBuffer.IndexCount - 2);
         }
-        public void DrawHeight(Matrix world, Camera cam)
-        {
-            var dev = vertexBuffer.GraphicsDevice;
-            dev.SetVertexBuffer(vertexBuffer);
-            dev.Indices = indexBuffer;
-            effect.Parameters["WorldViewProj"].SetValue(world * cam.View * cam.Projection);
-            effect.Parameters["WorldIT"].SetValue(Matrix.Transpose(Matrix.Invert(world)));
-            effect.Parameters["World"].SetValue(world);
-            effect.CurrentTechnique.Passes[1].Apply();
-            dev.DrawIndexedPrimitives(PrimitiveType.TriangleStrip, 0, 0, indexBuffer.IndexCount - 2);
-        }
-        public void DrawRefraction(Matrix world, Camera cam)
-        {
-            var dev = vertexBuffer.GraphicsDevice;
-            dev.SetVertexBuffer(vertexBuffer);
-            dev.Indices = indexBuffer;
-            effect.Parameters["WorldViewProj"].SetValue(world * cam.View * cam.Projection);
-            effect.Parameters["WorldIT"].SetValue(Matrix.Transpose(Matrix.Invert(world)));
-            effect.Parameters["World"].SetValue(world);
-            effect.CurrentTechnique.Passes[2].Apply();
-            dev.DrawIndexedPrimitives(PrimitiveType.TriangleStrip, 0, 0, indexBuffer.IndexCount - 2);
-        }
         public void DrawSandPlane(Camera cam)
         {
             var dev = flatPlaneVB.GraphicsDevice;
@@ -145,7 +128,6 @@ namespace FishSim
             dev.Indices = flatPlaneIB;
             var sandWorld = Matrix.CreateTranslation(0, -60, 0);
             effect.Parameters["WorldViewProj"].SetValue(sandWorld * cam.View * cam.Projection);
-            effect.Parameters["WorldIT"].SetValue(Matrix.Transpose(Matrix.Invert(sandWorld)));
             effect.Parameters["World"].SetValue(sandWorld);
             effect.Techniques["SandPlane"].Passes[0].Apply();
             dev.DrawIndexedPrimitives(PrimitiveType.TriangleStrip, 0, 0, 2);

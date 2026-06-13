@@ -1,10 +1,12 @@
-﻿float4x4 WorldViewProj;
+float4x4 WorldViewProj;
+float4x4 World;
 texture2D DiffuseMap;
 float4x4 WorldIT;
 float3 SunDir;
-float4x4 World;
 float TileCount; // hányszor ismétlődjön
 float BlendWidth; // átmenet szélessége UV-ban (10px / 1024 ≈ 0.0098)
+
+#include "Caustics.fxh"
 
 sampler DiffuseMapSampler = sampler_state
 {
@@ -16,9 +18,9 @@ sampler DiffuseMapSampler = sampler_state
 struct VSO
 {
     float4 pos : POSITION;
-    float4 worldPos : TEXCOORD2;
-    float2 tex : TEXCOORD;
+    float2 tex : TEXCOORD0;
     float3 normal : NORMAL;
+    float3 worldPos : TEXCOORD1;
 };
 
 VSO VS(float4 inPos : POSITION, float3 normal : NORMAL, float2 tex : TEXCOORD)
@@ -27,7 +29,7 @@ VSO VS(float4 inPos : POSITION, float3 normal : NORMAL, float2 tex : TEXCOORD)
     ret.tex = inPos.xz;
     ret.pos = mul(inPos, WorldViewProj);
     ret.normal = normalize(mul(normal, (float3x3) WorldIT));
-    ret.worldPos = mul(inPos, World);
+    ret.worldPos = mul(inPos, World).xyz;
     return ret;
 }
 
@@ -52,19 +54,8 @@ float4 PS(VSO vso) : COLOR
     float Ld = saturate(dot(vso.normal, SunDir) + dot(vso.normal, float3(0, 1, 0)));
     Ld = Ld / (1 + Ld) * (1 + Ld / 1.5);
     float4 diffuse = SampleTiled(vso.tex * TileCount) * Ld;
-    return float4(diffuse.rgb, 1);
-}
-
-float4 PS_Height(VSO vso) : COLOR
-{
-    return float4(vso.worldPos.y, 0, 0, 0);
-}
-
-float4 PS_Refraction(VSO vso) : COLOR
-{
-    float Ld = saturate(dot(vso.normal, SunDir) + dot(vso.normal, float3(0, 1, 0)));
-    float4 diffuse = SampleTiled(vso.tex * TileCount) * Ld;
-    return float4(diffuse.rgb, 1);
+    float3 color = ApplyCaustics(diffuse.rgb, vso.worldPos, vso.normal);
+    return float4(color, 1);
 }
 
 technique Seabed
@@ -74,16 +65,6 @@ technique Seabed
         VertexShader = compile vs_4_0_level_9_3 VS();
         PixelShader = compile ps_4_0_level_9_3 PS();
     }
-    pass P1
-    {
-        VertexShader = compile vs_4_0_level_9_3 VS();
-        PixelShader = compile ps_4_0_level_9_3 PS_Height();
-    }
-    pass P2
-    {
-        VertexShader = compile vs_4_0_level_9_3 VS();
-        PixelShader = compile ps_4_0_level_9_3 PS_Refraction();
-    }
 }
 
 // --- Sand Plane ---
@@ -92,18 +73,21 @@ float3 SandColor;
 struct VSO_Sand
 {
     float4 pos : POSITION;
+    float3 worldPos : TEXCOORD0;
 };
 
 VSO_Sand VS_Sand(float4 inPos : POSITION)
 {
     VSO_Sand ret;
     ret.pos = mul(inPos, WorldViewProj);
+    ret.worldPos = mul(inPos, World).xyz;
     return ret;
 }
 
-float4 PS_Sand() : COLOR
+float4 PS_Sand(VSO_Sand vso) : COLOR
 {
-    return float4(SandColor, 1.0);
+    float3 color = ApplyCaustics(SandColor, vso.worldPos, float3(0, 1, 0));
+    return float4(color, 1.0);
 }
 
 technique SandPlane

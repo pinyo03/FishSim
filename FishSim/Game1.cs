@@ -10,14 +10,11 @@ namespace FishSim
     public class Game1 : Game
     {
         private GraphicsDeviceManager _graphics;
-        private SpriteBatch _spriteBatch;
 
         Sky sky;
         Fish fish;
         List<Fish> fishes = new List<Fish>();
         Seabed seabed;
-        RenderTarget2D heightMap, waterRefraction, waterReflection;
-        Water water;
 
         public bool fishCam = true;
         bool tabReleased = true;
@@ -38,40 +35,23 @@ namespace FishSim
         protected override void Initialize()
         {
             this.Window.AllowUserResizing = true;
-            waterReflection = new RenderTarget2D(GraphicsDevice,
-                GraphicsDevice.Viewport.Width, GraphicsDevice.Viewport.Height,
-                false, SurfaceFormat.Color, DepthFormat.Depth16); Window.ClientSizeChanged += (s, e) => {
-                    _graphics.PreferredBackBufferWidth = Window.ClientBounds.Width;
-                    _graphics.PreferredBackBufferHeight = Window.ClientBounds.Height;
-                    _graphics.ApplyChanges();
-                    waterReflection?.Dispose();
-                    waterRefraction?.Dispose();
-                    waterReflection = new RenderTarget2D(GraphicsDevice, GraphicsDevice.Viewport.Width,
-                        GraphicsDevice.Viewport.Height, false, SurfaceFormat.Color, DepthFormat.Depth16);
-                    waterRefraction = new RenderTarget2D(GraphicsDevice, GraphicsDevice.Viewport.Width,
-                        GraphicsDevice.Viewport.Height, false, SurfaceFormat.Color, DepthFormat.Depth16);
-                };
-            heightMap = new RenderTarget2D(GraphicsDevice, GraphicsDevice.Viewport.Width,
-                        GraphicsDevice.Viewport.Height, false, SurfaceFormat.Single, DepthFormat.Depth16);
-            waterRefraction = new RenderTarget2D(GraphicsDevice,
-                GraphicsDevice.Viewport.Width, GraphicsDevice.Viewport.Height,
-                false, SurfaceFormat.Color, DepthFormat.Depth16);
+            Window.ClientSizeChanged += (s, e) => {
+                _graphics.PreferredBackBufferWidth = Window.ClientBounds.Width;
+                _graphics.PreferredBackBufferHeight = Window.ClientBounds.Height;
+                _graphics.ApplyChanges();
+            };
             base.Initialize();
         }
 
         protected override void LoadContent()
         {
-            _spriteBatch = new SpriteBatch(GraphicsDevice);
-            sky = new Sky(GraphicsDevice, Content.Load<Texture2D>("fishsky1"));
-            fish = new Fish(GraphicsDevice, Content.Load<Model>("fish1"), Content.Load<Texture2D>("relebook-export-ggach148215-001"), sky.SunDir);
+            sky = new Sky(GraphicsDevice, Content.Load<Texture2D>("fishsky1"), Content.Load<Effect>("Sky"));
+            var fishEffect = Content.Load<Effect>("FishLit");
+            fish = new Fish(GraphicsDevice, Content.Load<Model>("fish1"), Content.Load<Texture2D>("relebook-export-ggach148215-001"), fishEffect, sky.SunDir);
             fishes.Add(fish);
             seabed = new Seabed(GraphicsDevice, Content.Load<Texture2D>("seabedColor"),
                 sky.SunDir, Content.Load<Effect>("Seabed"));
 
-            var waterEffect = Content.Load<Effect>("Water");
-            var normalMap = new Texture2D(GraphicsDevice, 1, 1, false, SurfaceFormat.Color);
-            normalMap.SetData(new[] { new Color(128, 128, 255) });
-            water = new Water(GraphicsDevice, normalMap, waterEffect);
             // Initialise look angles to match the fish's starting heading
             var flatDir = Vector3.Normalize(new Vector3(fish.Direction.X, 0, fish.Direction.Z));
             _yaw   = MathF.Atan2(flatDir.X, flatDir.Z);
@@ -175,32 +155,13 @@ namespace FishSim
                 seabedBedrockLevel * Matrix.CreateScale(5000, 40f, 5000) * Matrix.CreateTranslation(-2500, -60, -2500)
             };
 
-            // 1. Height map
-            GraphicsDevice.SetRenderTarget(heightMap);
-            GraphicsDevice.Clear(ClearOptions.Target | ClearOptions.DepthBuffer,
-                new Vector4(-100.0f, 0, 0, 0), 1, 0);
-            foreach (var m in seabedTransforms)
-                seabed.DrawHeight(m, Camera.Main);
+            GraphicsDevice.Clear(Color.Black);
 
-            // 2. Refraction map – amit a vízen ÁT látunk (homok, halak)
-            GraphicsDevice.SetRenderTarget(waterRefraction);
-            GraphicsDevice.Clear(new Color(0, 20, 40)); // sötétkék alap ha nincs homok
-            foreach (var m in seabedTransforms)
-                seabed.DrawRefraction(m, Camera.Main);
+            float time = (float)gameTime.TotalGameTime.TotalSeconds;
+            sky.UpdateCaustics(time);
             foreach (var f in fishes)
-                f.Draw(Camera.Main);
-
-            // 3. Reflection map – amit a vízben tükröződik (ég)
-            GraphicsDevice.SetRenderTarget(waterReflection);
-            GraphicsDevice.Clear(Color.Black);
-            var reflCam = Camera.Main.GetReflection(Vector3.Up);
-            reflCam.AspectRatio = Camera.Main.AspectRatio;
-            sky.Draw(reflCam);
-
-            // 4. Normál render a back bufferre
-            GraphicsDevice.SetRenderTarget(null);
-            GraphicsDevice.Clear(Color.Black);
-            GraphicsDevice.BlendState = BlendState.Opaque;
+                f.UpdateCaustics(time);
+            seabed.UpdateCaustics(time);
 
             sky.Draw(Camera.Main);
             foreach (var f in fishes)
@@ -209,13 +170,6 @@ namespace FishSim
                 seabed.Draw(m, Camera.Main);
 
             seabed.DrawSandPlane(Camera.Main);
-
-            // Víz – legutoljára, alpha blend-del
-            GraphicsDevice.DepthStencilState = DepthStencilState.DepthRead;
-            GraphicsDevice.BlendState = BlendState.AlphaBlend;
-            water.Draw(Camera.Main, waterReflection, waterRefraction, heightMap, gameTime, sky.SunDir);
-            GraphicsDevice.BlendState = BlendState.Opaque;
-            GraphicsDevice.DepthStencilState = DepthStencilState.Default;
 
             base.Draw(gameTime);
         }

@@ -21,26 +21,21 @@ namespace FishSim
             model = fish.model;
             posErrors = new Vector3[verlets.Length];
         }
-        public Fish(GraphicsDevice dev, Model model, Texture2D texture, Vector3 sunDir)
+        public Fish(GraphicsDevice dev, Model model, Texture2D texture, Effect fishEffect, Vector3 sunDir)
         {
             this.model = model;
             foreach (var mesh in model.Meshes)
             {
-                foreach (var e in mesh.Effects)
+                foreach (var part in mesh.MeshParts)
                 {
-                    if (e is not BasicEffect effect) continue;
-                    effect.Texture = texture;
-                    effect.TextureEnabled = texture != null;
-                    effect.LightingEnabled = true;
-                    effect.PreferPerPixelLighting = true;
-                    effect.AmbientLightColor = new Vector3(0.3f, 0.3f, 0.3f);
-                    effect.DirectionalLight0.Enabled = true;
-                    effect.DirectionalLight0.Direction = Vector3.Normalize(-sunDir);
-                    effect.DirectionalLight0.DiffuseColor = new Vector3(0.7f, 0.7f, 0.7f);
-                    effect.DirectionalLight0.SpecularColor = new Vector3(0.2f, 0.2f, 0.2f);
-                    effect.DirectionalLight1.Enabled = true;
-                    effect.DirectionalLight1.Direction = Vector3.Down;
-                    effect.DirectionalLight1.DiffuseColor = new Vector3(0.2f, 0.2f, 0.2f);
+                    var effect = fishEffect.Clone();
+                    effect.Parameters["Texture"].SetValue(texture);
+                    effect.Parameters["AmbientColor"].SetValue(new Vector3(0.3f, 0.3f, 0.3f));
+                    effect.Parameters["Light0Dir"].SetValue(Vector3.Normalize(-sunDir));
+                    effect.Parameters["Light0Color"].SetValue(new Vector3(0.7f, 0.7f, 0.7f));
+                    effect.Parameters["Light1Dir"].SetValue(Vector3.Down);
+                    effect.Parameters["Light1Color"].SetValue(new Vector3(0.2f, 0.2f, 0.2f));
+                    part.Effect = effect;
                 }
             }
             float w = 0.2f, l = 1;
@@ -58,16 +53,25 @@ namespace FishSim
             };
             GenerateFullyConnectedBody();
         }
-        public void Draw(Camera cam)
+        public void UpdateCaustics(float time)
         {
             foreach (var mesh in model.Meshes)
+                foreach (var part in mesh.MeshParts)
+                    CausticsSettings.Apply(part.Effect, time);
+        }
+        public void Draw(Camera cam)
+        {
+            var world = localTransform * WorldTransform;
+            var worldIT = Matrix.Transpose(Matrix.Invert(world));
+            foreach (var mesh in model.Meshes)
             {
-                foreach (var e in mesh.Effects)
+                foreach (var part in mesh.MeshParts)
                 {
-                    if (e is not BasicEffect effect) continue;
-                    effect.World = localTransform * WorldTransform;
-                    effect.View = cam.View;
-                    effect.Projection = cam.Projection;
+                    var effect = part.Effect;
+                    effect.Parameters["World"].SetValue(world);
+                    effect.Parameters["View"].SetValue(cam.View);
+                    effect.Parameters["Projection"].SetValue(cam.Projection);
+                    effect.Parameters["WorldIT"].SetValue(worldIT);
                 }
                 mesh.Draw();
             }
