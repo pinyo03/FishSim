@@ -189,52 +189,6 @@ namespace Game1
             return ret;
         }
 
-        public static BasicGeometry CreateCylinder(GraphicsDevice device)
-        {
-            return CreateCylinder(device, 8, v => v);
-        }
-
-        // Egysegnyi henger a Y tengely korul: also kor y=-0.5, felso kor y=0.5, sugar=0.5.
-        public static BasicGeometry CreateCylinder<T>(GraphicsDevice device, int slices, Func<VertexPositionNormalTexture, T> createVertexCallback) where T : struct
-        {
-            if (slices < 3)
-                throw new ArgumentOutOfRangeException("Cylinder needs at least 3 slices");
-            var vpnt = new T[(slices + 1) * 2];
-            int index = 0;
-            for (int slice = 0; slice <= slices; slice++)
-            {
-                float theta = (float)slice / slices * MathHelper.TwoPi;
-                float x = (float)Math.Cos(theta);
-                float z = (float)Math.Sin(theta);
-                var normal = new Vector3(x, 0, z);
-                float u = (float)slice / slices;
-                vpnt[index++] = createVertexCallback(new VertexPositionNormalTexture(new Vector3(0.5f * x, 0.5f, 0.5f * z), normal, new Vector2(u, 0)));
-                vpnt[index++] = createVertexCallback(new VertexPositionNormalTexture(new Vector3(0.5f * x, -0.5f, 0.5f * z), normal, new Vector2(u, 1)));
-            }
-            var indices = new ushort[slices * 6];
-            index = 0;
-            for (int slice = 0; slice < slices; slice++)
-            {
-                int top0 = slice * 2, bot0 = slice * 2 + 1, top1 = slice * 2 + 2, bot1 = slice * 2 + 3;
-                indices[index++] = (ushort)top0;
-                indices[index++] = (ushort)top1;
-                indices[index++] = (ushort)bot0;
-                indices[index++] = (ushort)bot0;
-                indices[index++] = (ushort)top1;
-                indices[index++] = (ushort)bot1;
-            }
-
-            var ret = new BasicGeometry();
-            ret.VertexBuffer = new VertexBuffer(device, typeof(T), vpnt.Length, BufferUsage.WriteOnly);
-            ret.VertexBuffer.SetData(vpnt);
-            ret.IndexBuffer = new IndexBuffer(device, IndexElementSize.SixteenBits, indices.Length, BufferUsage.WriteOnly);
-            ret.IndexBuffer.SetData(indices);
-            ret.Effect = new BasicEffect(device);
-            ret.Effect.EnableDefaultLighting();
-            ret.Effect.PreferPerPixelLighting = true;
-            return ret;
-        }
-
         public static BasicGeometry CreateSphere(GraphicsDevice device)
         {
             return CreateSphere(device, 15, 7, v => v);
