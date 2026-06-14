@@ -7,6 +7,7 @@ float TileCount; // hányszor ismétlődjön
 float BlendWidth; // átmenet szélessége UV-ban (10px / 1024 ≈ 0.0098)
 
 #include "Caustics.fxh"
+#include "WaterColor.fxh"
 
 sampler DiffuseMapSampler = sampler_state
 {
@@ -55,6 +56,7 @@ float4 PS(VSO vso) : COLOR
     Ld = Ld / (1 + Ld) * (1 + Ld / 1.5);
     float4 diffuse = SampleTiled(vso.tex * TileCount) * Ld;
     float3 color = ApplyCaustics(diffuse.rgb, vso.worldPos, vso.normal);
+    color = ApplyDepthFog(color, vso.worldPos, CameraPosition, WaterFogDensity);
     return float4(color, 1);
 }
 
@@ -87,6 +89,7 @@ VSO_Sand VS_Sand(float4 inPos : POSITION)
 float4 PS_Sand(VSO_Sand vso) : COLOR
 {
     float3 color = ApplyCaustics(SandColor, vso.worldPos, float3(0, 1, 0));
+    color = ApplyDepthFog(color, vso.worldPos, CameraPosition, WaterFogDensity);
     return float4(color, 1.0);
 }
 

@@ -23,12 +23,14 @@ namespace FishSim
         }
         public void Draw(Camera cam)
         {
+            // A dome aljat a seabed alá toljuk, hogy ne maradjon fekete sáv
+            // a horizonton a seabed és az ég dome alsó pereme között.
             var world = Matrix.CreateScale(1000) *
-                Matrix.CreateTranslation(new Vector3(cam.Position.X, 0, cam.Position.Z));
+                Matrix.CreateTranslation(new Vector3(cam.Position.X, -300, cam.Position.Z));
             effect.Parameters["World"].SetValue(world);
             effect.Parameters["View"].SetValue(cam.View);
             effect.Parameters["Projection"].SetValue(cam.Projection);
-            effect.Parameters["CameraPosition"].SetValue(cam.Position);
+            WaterColorSettings.Apply(effect, cam.Position);
             effect.CurrentTechnique.Passes[0].Apply();
             model.DrawWithoutEffect();
         }

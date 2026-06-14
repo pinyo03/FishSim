@@ -10,7 +10,7 @@ namespace FishSim.Particles
     {
         public ParticleLayerSettingsBubbles()
         {
-            Count = 20000;
+            Count = 2000;
             Seed = 3003;
 
             VolumeHalfExtents = new Vector3(5, 5, 5);

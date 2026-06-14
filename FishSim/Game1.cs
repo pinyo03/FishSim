@@ -4,6 +4,7 @@ using Microsoft.Xna.Framework.Input;
 using FishSim.Particles;
 using System;
 using System.Collections.Generic;
+using Game1;
 
 
 namespace FishSim
@@ -20,6 +21,10 @@ namespace FishSim
 
         public bool fishCam = true;
         bool tabReleased = true;
+
+        BasicGeometry debugSphere;
+        bool showDebugVerlets = true;
+        bool f1Released = true;
 
         float _yaw;
         float _pitch;
@@ -49,7 +54,7 @@ namespace FishSim
         {
             sky = new Sky(GraphicsDevice, Content.Load<Texture2D>("fishsky1"), Content.Load<Effect>("Sky"));
             var fishEffect = Content.Load<Effect>("FishLit");
-            fish = new Fish(GraphicsDevice, Content.Load<Model>("fish1"), Content.Load<Texture2D>("relebook-export-ggach148215-001"), fishEffect, sky.SunDir);
+            fish = new Fish(GraphicsDevice, Content.Load<Model>("fish1"), Content.Load<Texture2D>("relebook-export-ggach148215-001"), Content.Load<Texture2D>("relebook-export-ggach148215-002"), fishEffect, sky.SunDir);
             fishes.Add(fish);
             seabed = new Seabed(GraphicsDevice, Content.Load<Texture2D>("seabedColor"),
                 sky.SunDir, Content.Load<Effect>("Seabed"));
@@ -68,6 +73,9 @@ namespace FishSim
 
             // Pre-centre mouse so the first frame delta is zero
             Mouse.SetPosition(GraphicsDevice.Viewport.Width / 2, GraphicsDevice.Viewport.Height / 2);
+
+            debugSphere = BasicGeometry.CreateSphere(GraphicsDevice);
+            debugSphere.Effect.DiffuseColor = Color.Red.ToVector3();
         }
 
         // Converts yaw (horizontal) and pitch (vertical) angles into a unit direction vector.
@@ -98,6 +106,10 @@ namespace FishSim
 
             if (tab && tabReleased) { fishCam = !fishCam; tabReleased = false; }
             else if (!tab) tabReleased = true;
+
+            var f1 = ks.IsKeyDown(Keys.F1);
+            if (f1 && f1Released) { showDebugVerlets = !showDebugVerlets; f1Released = false; }
+            else if (!f1) f1Released = true;
 
             // --- Mouse look (only while window is focused) ---
             if (IsActive)
@@ -177,6 +189,11 @@ namespace FishSim
             sky.Draw(Camera.Main);
             foreach (var f in fishes)
                 f.Draw(Camera.Main);
+
+            if (showDebugVerlets)
+                foreach (var f in fishes)
+                    f.DrawDebugVerlets(Camera.Main, debugSphere);
+
             foreach (var m in seabedTransforms)
                 seabed.Draw(m, Camera.Main);
 

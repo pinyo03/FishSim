@@ -4,6 +4,7 @@ float4x4 Projection;
 texture2D Texture;
 
 #include "Caustics.fxh"
+#include "WaterColor.fxh"
 
 sampler TextureSampler = sampler_state
 {
@@ -17,6 +18,7 @@ struct VSO
     float4 pos : POSITION;
     float3 viewDir : TEXCOORD0;
     float2 tex : TEXCOORD1;
+    float3 worldPos : TEXCOORD2;
 };
 
 // The half-sphere dome is generated as unit direction vectors from its centre,
@@ -28,6 +30,7 @@ VSO VS(float4 inPos : POSITION, float2 tex : TEXCOORD0)
     ret.viewDir = normalize(inPos.xyz);
     ret.pos = mul(mul(worldPos, View), Projection);
     ret.tex = tex;
+    ret.worldPos = worldPos.xyz;
     return ret;
 }
 
@@ -35,6 +38,14 @@ float4 PS(VSO vso) : COLOR
 {
     float4 tex = tex2D(TextureSampler, vso.tex);
     float3 color = ApplyCausticsSky(tex.rgb, normalize(vso.viewDir));
+
+    // Fuggolegesen felfele nezve egyre kevesebb viz van a kamera felett, ezert a kod
+    // max-keveredese a vizszinteshez tartozo WaterFogMaxBlend-rol negyzetes gorbe
+    // szerint SkyFogMinBlend-ig csokken, ha pontosan felfele nezunk (up = 1).
+    float up = saturate(normalize(vso.viewDir).y);
+    float skyMaxBlend = lerp(WaterFogMaxBlend, SkyFogMinBlend, up * up);
+
+    color = ApplyDepthFog(color, vso.worldPos, CameraPosition, WaterFogDensity, skyMaxBlend);
     return float4(color, tex.a);
 }
 

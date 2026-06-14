@@ -118,6 +118,7 @@ namespace FishSim
             effect.Parameters["WorldViewProj"].SetValue(world * cam.View * cam.Projection);
             effect.Parameters["WorldIT"].SetValue(Matrix.Transpose(Matrix.Invert(world)));
             effect.Parameters["World"].SetValue(world);
+            WaterColorSettings.Apply(effect, cam.Position);
             effect.CurrentTechnique.Passes[0].Apply();
             dev.DrawIndexedPrimitives(PrimitiveType.TriangleStrip, 0, 0, indexBuffer.IndexCount - 2);
         }
@@ -129,6 +130,7 @@ namespace FishSim
             var sandWorld = Matrix.CreateTranslation(0, -60, 0);
             effect.Parameters["WorldViewProj"].SetValue(sandWorld * cam.View * cam.Projection);
             effect.Parameters["World"].SetValue(sandWorld);
+            WaterColorSettings.Apply(effect, cam.Position);
             effect.Techniques["SandPlane"].Passes[0].Apply();
             dev.DrawIndexedPrimitives(PrimitiveType.TriangleStrip, 0, 0, 2);
         }

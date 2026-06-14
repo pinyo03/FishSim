@@ -2,6 +2,7 @@
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 using System;
+using System.Linq.Expressions;
 
 namespace FishSim
 {
@@ -21,7 +22,7 @@ namespace FishSim
             model = fish.model;
             posErrors = new Vector3[verlets.Length];
         }
-        public Fish(GraphicsDevice dev, Model model, Texture2D texture, Effect fishEffect, Vector3 sunDir)
+        public Fish(GraphicsDevice dev, Model model, Texture2D texture, Texture2D normalTexture, Effect fishEffect, Vector3 sunDir)
         {
             this.model = model;
             foreach (var mesh in model.Meshes)
@@ -30,6 +31,7 @@ namespace FishSim
                 {
                     var effect = fishEffect.Clone();
                     effect.Parameters["Texture"].SetValue(texture);
+                    effect.Parameters["NormalTexture"].SetValue(normalTexture);
                     effect.Parameters["AmbientColor"].SetValue(new Vector3(0.3f, 0.3f, 0.3f));
                     effect.Parameters["Light0Dir"].SetValue(Vector3.Normalize(-sunDir));
                     effect.Parameters["Light0Color"].SetValue(new Vector3(0.7f, 0.7f, 0.7f));
@@ -44,20 +46,63 @@ namespace FishSim
                 (float)rng.NextDouble() * 20, 5,
                 (float)rng.NextDouble() * 20);
             verlets = new Verlet[] {
-                new Verlet(pos + new Vector3(l, 0, -w)),
-                new Verlet(pos + new Vector3(l, 0, w)),
-                new Verlet(pos + new Vector3(-l, 0, w)),
-                new Verlet(pos + new Vector3(-l, 0, -w)),
-                new Verlet(pos + new Vector3(0, 0.5f, 0)),
-                new Verlet(pos + new Vector3(-l, -0.8f, 0))
+                // messzi keretezés nem lesz része a halnak csak ha kiveszem minden másik pont elcsúszik
+                new Verlet(pos + new Vector3(5*l, 0, -5*w)),
+                new Verlet(pos + new Vector3(5 * l, 0, 5*w)),
+                new Verlet(pos + new Vector3(-5*l, 0, 5*w)),
+                new Verlet(pos + new Vector3(-5*l, 0, -5*w)),
+
+                new Verlet(pos + new Vector3(-1.16f, 0.08f, 0)),                            //farok alsó vége
+                new Verlet(pos + new Vector3(-0.76f, 0.25f, 0)),                            //farok alsó töve
+                new Verlet(pos + new Vector3(-1.16f, 0.85f, 0)),                            //farok felső vége
+                new Verlet(pos + new Vector3(-0.76f, 0.65f, 0)),                            //farok felső töve
+                        
+                new Verlet(pos + new Vector3(1.1f, -0.25f, -0.075f)),                       //bal melső úszó alsó vége
+                new Verlet(pos + new Vector3(1, -0.02f, -0.084f)),                          //bal melső úszó hátsó vége
+                new Verlet(pos + new Vector3(1.17f, 0.08f, -0.074f)),                       //bal melső úszó töve
+
+                new Verlet(pos + new Vector3(1.1f, -0.25f, 0.075f)),                        //jobb melső úszó alsó vége
+                new Verlet(pos + new Vector3(1, -0.02f, 0.084f)),                           //jobb melső úszó hátsó vége
+                new Verlet(pos + new Vector3(1.17f, 0.08f, 0.074f)),                        //jobb melső úszó töve
+
+                new Verlet(pos + new Vector3(0, -0.16f, 0)),                                //has középi úszó alsó vége
+                new Verlet(pos + new Vector3(-0.26f, 0.1f, 0)),                             //has középi úszó felső vége
+                new Verlet(pos + new Vector3(0.17f, 0.16f, 0)),                             //has középi úszó töve
+
+                new Verlet(pos + new Vector3(0.15f, 1.1f, 0)),                              //hát középi úszó első vége
+                new Verlet(pos + new Vector3(0.45f, 0.8f, 0)),                              //hát középi úszó első töve
+                new Verlet(pos + new Vector3(0.1f, 0.7f, 0)),                               //hát középi úszó hátsó vége
+                new Verlet(pos + new Vector3(-0.19f, 0.8f, 0)),                             //hát középi úszó hátsó töve
+
+                new Verlet(pos + new Vector3(1.3f, 0.3f, 0.3f)),                            //jobb első úszó töve
+                new Verlet(pos + new Vector3(1.03f, 0.43f, 0.6f)),                          //jobb első úszó felső vége
+                new Verlet(pos + new Vector3(1.03f, 0.23f, 0.6f)),                          //jobb első úszó alsó vége
+
+                new Verlet(pos + new Vector3(1.3f, 0.3f, -0.3f)),                           //bal első úszó töve
+                new Verlet(pos + new Vector3(1.21f, 0.43f, -0.6f)),                         //bal első úszó felső vége
+                new Verlet(pos + new Vector3(1.09f, 0.23f, -0.6f)),                         //bal első úszó alsó vége
+
+                new Verlet(pos + new Vector3(-0.5f, 0.45f, 0)),                            //7. csigolya a faroknál
+                new Verlet(pos + new Vector3(-0.1f, 0.45f, 0)),                            //6. csigolya
+                new Verlet(pos + new Vector3(0.3f, 0.45f, 0)),                             //5. csigolya 
+                new Verlet(pos + new Vector3(0.7f, 0.45f, 0)),                             //4. csigolya
+                new Verlet(pos + new Vector3(1.1f, 0.45f, 0)),                             //3. csigolya
+                new Verlet(pos + new Vector3(1.5f, 0.45f, 0)),                             //2. csigolya 
+                new Verlet(pos + new Vector3(1.9f, 0.45f, 0)),                             //1. csigolya a fejnél
+                new Verlet(pos + new Vector3(2.25f, 0.45f, 0)),                             //fej legeleje
             };
             GenerateFullyConnectedBody();
         }
         public void UpdateCaustics(float time)
         {
+            // Kekes ambient a hal aktualis magassagahoz tartozo viz-szin alapjan.
+            var ambient = WaterColorSettings.GetColorAtHeight(Position.Y) * 0.6f;
             foreach (var mesh in model.Meshes)
                 foreach (var part in mesh.MeshParts)
+                {
                     CausticsSettings.Apply(part.Effect, time);
+                    part.Effect.Parameters["AmbientColor"]?.SetValue(ambient);
+                }
         }
         public void Draw(Camera cam)
         {
@@ -72,12 +117,24 @@ namespace FishSim
                     effect.Parameters["View"].SetValue(cam.View);
                     effect.Parameters["Projection"].SetValue(cam.Projection);
                     effect.Parameters["WorldIT"].SetValue(worldIT);
+                    WaterColorSettings.Apply(effect, cam.Position);
                 }
                 mesh.Draw();
             }
         }
+        public void DrawDebugVerlets(Camera cam, BasicGeometry sphere)
+        {
+            foreach (var v in verlets)
+            {
+                var world = Matrix.CreateScale(0.05f) * Matrix.CreateTranslation(v.Pos);
+                sphere.Draw(world, cam.View, cam.Projection);
+            }
+        }
         public void Step()
         {
+            // TEMP: hal lefagyasztva a tomegpontok pozicionalasahoz - eredeti logika kikommentelve
+            return;
+            /*
             ApplyForces();
             for (int i = 0; i < verlets.Length; i++)
             {
@@ -89,6 +146,7 @@ namespace FishSim
                 }
             }
             ApplyConstraints();
+            */
         }
         private void ApplyForces()
         {
