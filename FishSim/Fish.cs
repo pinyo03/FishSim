@@ -2,96 +2,120 @@
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 using System;
+using System.Linq;
 using System.Linq.Expressions;
+using FishSim.Animation;
 
 namespace FishSim
 {
+    // Egy mesh PBR textura-keszlete (BaseColor + Normal + Metallic + Roughness, AO opcionalis).
+    class FishMaterial
+    {
+        public Texture2D BaseColor, Normal, Metallic, Roughness, AO;
+    }
+
     class Fish : Body
     {
-        public bool ctrlW, ctrlS, ctrlA, ctrlD;
+        public bool ctrlW, ctrlS, ctrlA, ctrlD, ctrlQ, ctrlE;
         public Vector3[] posErrors;
+        // Az utkozesi ellipszoid felmeretei a hal lokalis tengelyei menten (elore/Direction, oldalra/Right, fel/Up).
+        public float CollisionRadiusForward = 1.2f;
+        public float CollisionRadiusRight = 0.5f;
+        public float CollisionRadiusUp = 0.6f;
         public Vector3 Position => (verlets[0].Pos + verlets[1].Pos + verlets[2].Pos + verlets[3].Pos) * 0.25f;
         public Vector3 Direction => verlets[0].Pos - verlets[3].Pos;
         public Vector3 Right => verlets[1].Pos - verlets[0].Pos;
-        public Vector3 Up => 2 * verlets[4].Pos - verlets[0].Pos - verlets[2].Pos;
+        public Vector3 Up => Vector3.Cross(Right, Direction);
         public Matrix WorldTransform => Matrix.CreateWorld(Position, Vector3.Normalize(Direction), Vector3.Normalize(Up));
+
+        // Az utkozesi ellipszoidot a halhoz igazito (forgatott + nem-uniform skalazott) vilagmatrix.
+        public Matrix CollisionWorldTransform
+        {
+            get
+            {
+                Vector3 d = Vector3.Normalize(Direction);
+                Vector3 r = Vector3.Normalize(Right);
+                Vector3 u = Vector3.Normalize(Up);
+                return new Matrix(
+                    d.X * CollisionRadiusForward, d.Y * CollisionRadiusForward, d.Z * CollisionRadiusForward, 0,
+                    u.X * CollisionRadiusUp, u.Y * CollisionRadiusUp, u.Z * CollisionRadiusUp, 0,
+                    r.X * CollisionRadiusRight, r.Y * CollisionRadiusRight, r.Z * CollisionRadiusRight, 0,
+                    Position.X, Position.Y, Position.Z, 1);
+            }
+        }
         Model model;
-        Matrix localTransform = Matrix.CreateScale(0.1f) * Matrix.CreateRotationY(MathHelper.Pi) * Matrix.CreateRotationX(MathHelper.PiOver2);
+        GraphicsDevice graphicsDevice;
+        AnimationPlayer animationPlayer;
+        Matrix localTransform = Matrix.CreateScale(0.4f) * Matrix.CreateRotationY(MathHelper.Pi) * Matrix.CreateRotationX(MathHelper.PiOver2);
         public Fish(Fish fish) : base(fish)
         {
             model = fish.model;
+            graphicsDevice = fish.graphicsDevice;
             posErrors = new Vector3[verlets.Length];
         }
-        public Fish(GraphicsDevice dev, Model model, Texture2D texture, Texture2D normalTexture, Effect fishEffect, Vector3 sunDir)
+        public Fish(GraphicsDevice dev, Model model, FishMaterial bodyMaterial, FishMaterial eyesMaterial, Effect fishEffect, Vector3 sunDir)
         {
             this.model = model;
+            this.graphicsDevice = dev;
+            var whiteAO = new Texture2D(dev, 1, 1);
+            whiteAO.SetData(new[] { Color.White });
+
+            // A SkinnedModelProcessor a Model.Tag-ben adja vissza a csontvazat es az animacios klipeket
+            // (a sztenderd ModelProcessor ezt eldobja). Ha jelen van, elindítjuk az elso (egyetlen) klipet.
+            if (model.Tag is SkinningData skinningData)
+            {
+                // Az uszas-animacio jelenleg hibas csontvaz-torzulast okoz ("tuskes csillag"),
+                // ezert csak a bind pose-t hasznaljuk (nincs StartClip), a hal mozdulatlan marad.
+                animationPlayer = new AnimationPlayer(skinningData);
+                Console.WriteLine($"Fish: {skinningData.AnimationClips.Count} animacios klip, {skinningData.BindPose.Length} csont (animacio kikapcsolva).");
+            }
+
             foreach (var mesh in model.Meshes)
             {
+                // "EyesC" es "CorneaC" mesh-ek egyutt alkotjak a szemet, mindketto az EYS_Material textura-keszletet hasznalja.
+                bool isEyes = mesh.Name.IndexOf("eye", StringComparison.OrdinalIgnoreCase) >= 0
+                    || mesh.Name.IndexOf("cornea", StringComparison.OrdinalIgnoreCase) >= 0;
+                var material = isEyes ? eyesMaterial : bodyMaterial;
                 foreach (var part in mesh.MeshParts)
                 {
+                    Console.WriteLine($"Fish mesh '{mesh.Name}' -> {(isEyes ? "Eyes" : "Body")} material");
+
                     var effect = fishEffect.Clone();
-                    effect.Parameters["Texture"].SetValue(texture);
-                    effect.Parameters["NormalTexture"].SetValue(normalTexture);
+                    effect.Parameters["Texture"].SetValue(material.BaseColor);
+                    effect.Parameters["NormalTexture"].SetValue(material.Normal);
+                    effect.Parameters["MetallicTexture"].SetValue(material.Metallic);
+                    effect.Parameters["RoughnessTexture"].SetValue(material.Roughness);
+                    effect.Parameters["AOTexture"].SetValue(material.AO ?? whiteAO);
+                    effect.Parameters["HasAO"].SetValue(material.AO != null);
                     effect.Parameters["AmbientColor"].SetValue(new Vector3(0.3f, 0.3f, 0.3f));
                     effect.Parameters["Light0Dir"].SetValue(Vector3.Normalize(-sunDir));
                     effect.Parameters["Light0Color"].SetValue(new Vector3(0.7f, 0.7f, 0.7f));
                     effect.Parameters["Light1Dir"].SetValue(Vector3.Down);
                     effect.Parameters["Light1Color"].SetValue(new Vector3(0.2f, 0.2f, 0.2f));
+
+                    // A Body mesh (csontvazas, animalt) a skinning technique-et hasznalja; a szem rideg marad.
+                    if (!isEyes && animationPlayer != null)
+                        effect.CurrentTechnique = effect.Techniques["FishLitSkinned"];
+                    
                     part.Effect = effect;
                 }
             }
             float w = 0.2f, l = 1;
             var rng = new Random();
             var pos = new Vector3(
-                (float)rng.NextDouble() * 20, 5,
+                (float)rng.NextDouble() * 20, -30,
                 (float)rng.NextDouble() * 20);
             verlets = new Verlet[] {
-                // messzi keretezés nem lesz része a halnak csak ha kiveszem minden másik pont elcsúszik
-                new Verlet(pos + new Vector3(5*l, 0, -5*w)),
-                new Verlet(pos + new Vector3(5 * l, 0, 5*w)),
-                new Verlet(pos + new Vector3(-5*l, 0, 5*w)),
-                new Verlet(pos + new Vector3(-5*l, 0, -5*w)),
-
-                new Verlet(pos + new Vector3(-1.16f, 0.08f, 0)),                            //farok alsó vége
-                new Verlet(pos + new Vector3(-0.76f, 0.25f, 0)),                            //farok alsó töve
-                new Verlet(pos + new Vector3(-1.16f, 0.85f, 0)),                            //farok felső vége
-                new Verlet(pos + new Vector3(-0.76f, 0.65f, 0)),                            //farok felső töve
-                        
-                new Verlet(pos + new Vector3(1.1f, -0.25f, -0.075f)),                       //bal melső úszó alsó vége
-                new Verlet(pos + new Vector3(1, -0.02f, -0.084f)),                          //bal melső úszó hátsó vége
-                new Verlet(pos + new Vector3(1.17f, 0.08f, -0.074f)),                       //bal melső úszó töve
-
-                new Verlet(pos + new Vector3(1.1f, -0.25f, 0.075f)),                        //jobb melső úszó alsó vége
-                new Verlet(pos + new Vector3(1, -0.02f, 0.084f)),                           //jobb melső úszó hátsó vége
-                new Verlet(pos + new Vector3(1.17f, 0.08f, 0.074f)),                        //jobb melső úszó töve
-
-                new Verlet(pos + new Vector3(0, -0.16f, 0)),                                //has középi úszó alsó vége
-                new Verlet(pos + new Vector3(-0.26f, 0.1f, 0)),                             //has középi úszó felső vége
-                new Verlet(pos + new Vector3(0.17f, 0.16f, 0)),                             //has középi úszó töve
-
-                new Verlet(pos + new Vector3(0.15f, 1.1f, 0)),                              //hát középi úszó első vége
-                new Verlet(pos + new Vector3(0.45f, 0.8f, 0)),                              //hát középi úszó első töve
-                new Verlet(pos + new Vector3(0.1f, 0.7f, 0)),                               //hát középi úszó hátsó vége
-                new Verlet(pos + new Vector3(-0.19f, 0.8f, 0)),                             //hát középi úszó hátsó töve
-
-                new Verlet(pos + new Vector3(1.3f, 0.3f, 0.3f)),                            //jobb első úszó töve
-                new Verlet(pos + new Vector3(1.03f, 0.43f, 0.6f)),                          //jobb első úszó felső vége
-                new Verlet(pos + new Vector3(1.03f, 0.23f, 0.6f)),                          //jobb első úszó alsó vége
-
-                new Verlet(pos + new Vector3(1.3f, 0.3f, -0.3f)),                           //bal első úszó töve
-                new Verlet(pos + new Vector3(1.21f, 0.43f, -0.6f)),                         //bal első úszó felső vége
-                new Verlet(pos + new Vector3(1.09f, 0.23f, -0.6f)),                         //bal első úszó alsó vége
-
-                new Verlet(pos + new Vector3(-0.5f, 0.45f, 0)),                            //7. csigolya a faroknál
-                new Verlet(pos + new Vector3(-0.1f, 0.45f, 0)),                            //6. csigolya
-                new Verlet(pos + new Vector3(0.3f, 0.45f, 0)),                             //5. csigolya 
-                new Verlet(pos + new Vector3(0.7f, 0.45f, 0)),                             //4. csigolya
-                new Verlet(pos + new Vector3(1.1f, 0.45f, 0)),                             //3. csigolya
-                new Verlet(pos + new Vector3(1.5f, 0.45f, 0)),                             //2. csigolya 
-                new Verlet(pos + new Vector3(1.9f, 0.45f, 0)),                             //1. csigolya a fejnél
-                new Verlet(pos + new Vector3(2.25f, 0.45f, 0)),                             //fej legeleje
+                new Verlet(pos + new Vector3(l, 0, -2*w)),
+                new Verlet(pos + new Vector3(l, 0, 2*w)),
+                new Verlet(pos + new Vector3(-l, 0, 2*w)),
+                new Verlet(pos + new Vector3(-l, 0, -2*w)),
             };
             GenerateFullyConnectedBody();
+        }
+        public void UpdateAnimation(GameTime gameTime)
+        {
+            animationPlayer?.Update(gameTime.ElapsedGameTime, true, Matrix.Identity);
         }
         public void UpdateCaustics(float time)
         {
@@ -117,6 +141,8 @@ namespace FishSim
                     effect.Parameters["View"].SetValue(cam.View);
                     effect.Parameters["Projection"].SetValue(cam.Projection);
                     effect.Parameters["WorldIT"].SetValue(worldIT);
+                    if (animationPlayer != null)
+                        effect.Parameters["Bones"]?.SetValue(animationPlayer.Bones);
                     WaterColorSettings.Apply(effect, cam.Position);
                 }
                 mesh.Draw();
@@ -130,11 +156,8 @@ namespace FishSim
                 sphere.Draw(world, cam.View, cam.Projection);
             }
         }
-        public void Step()
+        public void Step(Seabed seabed, Matrix seabedTransform)
         {
-            // TEMP: hal lefagyasztva a tomegpontok pozicionalasahoz - eredeti logika kikommentelve
-            return;
-            /*
             ApplyForces();
             for (int i = 0; i < verlets.Length; i++)
             {
@@ -146,37 +169,117 @@ namespace FishSim
                 }
             }
             ApplyConstraints();
-            */
+
+            // Seabed-collision: az utkozesi ellipszoid legalsó pontja ne mehessen
+            // a terep felulete ala. Az ellipszoid lokalis tengelyei (d,r,u) menten
+            // vett fel-le kiterjedese: sqrt((rF*d.Y)^2 + (rR*r.Y)^2 + (rU*u.Y)^2).
+            Vector3 d2 = Vector3.Normalize(Direction);
+            Vector3 r2 = Vector3.Normalize(Right);
+            Vector3 u2 = Vector3.Normalize(Up);
+            float verticalExtent = MathF.Sqrt(
+                MathF.Pow(CollisionRadiusForward * d2.Y, 2) +
+                MathF.Pow(CollisionRadiusRight * r2.Y, 2) +
+                MathF.Pow(CollisionRadiusUp * u2.Y, 2));
+
+            float seabedY = seabed.GetHeightAt(Position.X, Position.Z, seabedTransform);
+            float penetration = (seabedY + verticalExtent) - Position.Y;
+            if (penetration > 0)
+            {
+                // A pozicio-korrekcio pPos-t is elcsusztatja, hogy ne injektaljon extra
+                // (a korrekciobol szarmazo) sebesseget; csak a tenyleges lefele-sebesseg
+                // egy kis resze (restitution) pattan vissza.
+                const float restitution = 0.45f;
+                for (int i = 0; i < verlets.Length; i++)
+                {
+                    verlets[i].Pos.Y += penetration;
+                    verlets[i].pPos.Y += penetration;
+
+                    float velY = verlets[i].Pos.Y - verlets[i].pPos.Y;
+                    if (velY < 0)
+                        verlets[i].pPos.Y = verlets[i].Pos.Y + velY * restitution;
+                }
+            }
         }
         private void ApplyForces()
         {
-            Vector3 g = new Vector3(0, -9.81f, 0);
             for (int i = 0; i < verlets.Length; i++)
-                verlets[i].Acc = g;
+                verlets[i].Acc = Vector3.Zero;
+
             Vector3 d = Vector3.Normalize(Direction);
             Vector3 r = Vector3.Normalize(Right);
             Vector3 u = Vector3.Normalize(Up);
-            for (int i = 0; i < 4; i++)
+
+            // Aramvonalas (anizotrop) kozegellenallas: elore alig lassul, oldalra/fel-le erosen.
+            for (int i = 0; i < verlets.Length; i++)
             {
-                float height = verlets[i].Pos.Y;
-                if (height < 0)
-                {
-                    verlets[i].Acc += Vector3.Up * Math.Min(-height * 50, 30);
-                    verlets[i].AddSqFriction(Vector3.Up, 10);
-                }
-                float fHeight = Math.Max(0.5f - verlets[i].Pos.Y, 0);
-                verlets[i].AddSqFriction(d, 0.05f * fHeight);
-                verlets[i].AddSqFriction(r, 0.5f * fHeight);
-                verlets[i].AddSqFriction(u, 5 * fHeight);
+                Vector3 vel = verlets[i].Pos - verlets[i].pPos;
+
+                float vForward = Vector3.Dot(vel, d);
+                float vRight = Vector3.Dot(vel, r);
+                float vUp = Vector3.Dot(vel, u);
+
+                verlets[i].Acc -= d * vForward * 2.0f;
+                verlets[i].Acc -= r * vRight * 40.0f;
+                verlets[i].Acc -= u * vUp * 40.0f;
             }
+
+            // Tokesuly / auto-stabilizacio: a hal "fel" iranya (u) terjen vissza a globalis
+            // fel irany hala-dolesi sikra projektalt verziojahoz, fuggetlenul attol, hogy
+            // eppen oldalara dolt vagy teljesen a hasan/hatan uszik (negativ feedback mindket esetben).
+            Vector3 worldUp = Vector3.Up;
+            Vector3 desiredUp = worldUp - d * Vector3.Dot(worldUp, d);
+            if (desiredUp.LengthSquared() > 1e-6f)
+            {
+                desiredUp = Vector3.Normalize(desiredUp);
+                float stabK = 15.0f;
+                float magnitude = Vector3.Dot(r, desiredUp) * stabK;
+                verlets[0].Acc += magnitude * u;
+                verlets[3].Acc += magnitude * u;
+                verlets[1].Acc -= magnitude * u;
+                verlets[2].Acc -= magnitude * u;
+            }
+
+            // Jatekos iranyitas
+            float speed = 2.0f;
+            float turnSpeed = 0.6f;
+
             if (ctrlW)
-                verlets[5].Acc += d * 10;
+            {
+                for (int i = 0; i < 4; i++) verlets[i].Acc += d * speed;
+            }
             if (ctrlS)
-                verlets[5].Acc -= d * 5;
+            {
+                // Fek: kiterjesztett uszok, sebessegfuggo fekezo ero.
+                for (int i = 0; i < 4; i++)
+                {
+                    Vector3 vel = verlets[i].Pos - verlets[i].pPos;
+                    verlets[i].Acc -= vel * 80f;
+                }
+            }
+
+            // Yaw (kanyarodas balra/jobbra): orr (0,1) es farok (2,3) ellentetes iranyba.
             if (ctrlA)
-                verlets[5].Acc += r * (verlets[5].Velocity.Length() + 2) * 0.2f;
+            {
+                verlets[0].Acc -= r * turnSpeed; verlets[1].Acc -= r * turnSpeed;
+                verlets[2].Acc += r * turnSpeed; verlets[3].Acc += r * turnSpeed;
+            }
             if (ctrlD)
-                verlets[5].Acc -= r * (verlets[5].Velocity.Length() + 2) * 0.2f;
+            {
+                verlets[0].Acc += r * turnSpeed; verlets[1].Acc += r * turnSpeed;
+                verlets[2].Acc -= r * turnSpeed; verlets[3].Acc -= r * turnSpeed;
+            }
+
+            // Pitch (bolintas fel/le): orr (0,1) es farok (2,3) ellentetes iranyba.
+            if (ctrlQ) // orr le
+            {
+                verlets[0].Acc -= u * turnSpeed; verlets[1].Acc -= u * turnSpeed;
+                verlets[2].Acc += u * turnSpeed; verlets[3].Acc += u * turnSpeed;
+            }
+            if (ctrlE) // orr fel
+            {
+                verlets[0].Acc += u * turnSpeed; verlets[1].Acc += u * turnSpeed;
+                verlets[2].Acc -= u * turnSpeed; verlets[3].Acc -= u * turnSpeed;
+            }
         }
     }
 }

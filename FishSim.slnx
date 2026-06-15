@@ -1,3 +1,4 @@
 <Solution>
   <Project Path="FishSim/FishSim.csproj" />
+  <Project Path="FishSim.Pipeline/FishSim.Pipeline.csproj" />
 </Solution>

@@ -23,13 +23,23 @@ namespace FishSim
         bool tabReleased = true;
 
         BasicGeometry debugSphere;
-        bool showDebugVerlets = true;
+        bool showDebugVerlets = false;
         bool f1Released = true;
+
+        BasicGeometry collisionSphere;
+        bool showCollisionSphere = false;
+        bool f2Released = true;
+
+        Matrix seabedHeightTransform;
 
         float _yaw;
         float _pitch;
         const float Sensitivity = 0.003f;
         const float PitchLimit  = 1.45f;   // ~83 degrees, avoids gimbal lock at ±90
+
+        int _previousScrollValue;
+        float _cameraZoom = 5f;
+        bool _wasLeftButtonPressed = false;
 
         public Game1()
         {
@@ -54,7 +64,29 @@ namespace FishSim
         {
             sky = new Sky(GraphicsDevice, Content.Load<Texture2D>("fishsky1"), Content.Load<Effect>("Sky"));
             var fishEffect = Content.Load<Effect>("FishLit");
-            fish = new Fish(GraphicsDevice, Content.Load<Model>("fish1"), Content.Load<Texture2D>("relebook-export-ggach148215-001"), Content.Load<Texture2D>("relebook-export-ggach148215-002"), fishEffect, sky.SunDir);
+
+            var bodyMaterial = new FishMaterial
+            {
+                BaseColor = Content.Load<Texture2D>("tuna-fish/textures/TunaHLW_Material_BaseColor"),
+                Normal = Content.Load<Texture2D>("tuna-fish/textures/TunaHLW_Material_Normal"),
+                Metallic = Content.Load<Texture2D>("tuna-fish/textures/TunaHLW_Material_Metallic"),
+                Roughness = Content.Load<Texture2D>("tuna-fish/textures/TunaHLW_Material_Roughness"),
+                AO = Content.Load<Texture2D>("tuna-fish/textures/Material_ambient_occlusion"),
+            };
+            var greyEye = new Texture2D(GraphicsDevice, 1, 1);
+            greyEye.SetData(new[] { new Color(15, 15, 15) });
+            var silverMetallic = new Texture2D(GraphicsDevice, 1, 1);
+            silverMetallic.SetData(new[] { Color.White }); // fully metallic
+            var silverRoughness = new Texture2D(GraphicsDevice, 1, 1);
+            silverRoughness.SetData(new[] { Color.Black }); // roughness = 0, mirror-sharp highlight
+            var eyesMaterial = new FishMaterial
+            {
+                BaseColor = greyEye,
+                Normal = Content.Load<Texture2D>("tuna-fish/textures/EYS_Material_Normal"),
+                Metallic = silverMetallic,
+                Roughness = silverRoughness,
+            };
+            fish = new Fish(GraphicsDevice, Content.Load<Model>("tuna-fish/source/TunaFish"), bodyMaterial, eyesMaterial, fishEffect, sky.SunDir);
             fishes.Add(fish);
             seabed = new Seabed(GraphicsDevice, Content.Load<Texture2D>("seabedColor"),
                 sky.SunDir, Content.Load<Effect>("Seabed"));
@@ -76,6 +108,15 @@ namespace FishSim
 
             debugSphere = BasicGeometry.CreateSphere(GraphicsDevice);
             debugSphere.Effect.DiffuseColor = Color.Red.ToVector3();
+
+            collisionSphere = BasicGeometry.CreateSphere(GraphicsDevice);
+            collisionSphere.Effect.DiffuseColor = Color.Yellow.ToVector3();
+            collisionSphere.Effect.Alpha = 0.5f;
+
+            // A seabed magassagteret ugyanide kell transzformalni, mint a Draw-ban a heightfield meshet.
+            seabedHeightTransform = Matrix.CreateTranslation(0, -0.05f, 0)
+                * Matrix.CreateScale(5000, 40f, 5000)
+                * Matrix.CreateTranslation(-2500, -60, -2500);
         }
 
         // Converts yaw (horizontal) and pitch (vertical) angles into a unit direction vector.
@@ -111,34 +152,93 @@ namespace FishSim
             if (f1 && f1Released) { showDebugVerlets = !showDebugVerlets; f1Released = false; }
             else if (!f1) f1Released = true;
 
-            // --- Mouse look (only while window is focused) ---
-            if (IsActive)
-            {
-                int cx = GraphicsDevice.Viewport.Width  / 2;
-                int cy = GraphicsDevice.Viewport.Height / 2;
-                var ms = Mouse.GetState();
-                _yaw   -= (ms.X - cx) * Sensitivity;
-                _pitch -= (ms.Y - cy) * Sensitivity;
-                _pitch  = MathHelper.Clamp(_pitch, -PitchLimit, PitchLimit);
-                Mouse.SetPosition(cx, cy);
-            }
+            var f2 = ks.IsKeyDown(Keys.F2);
+            if (f2 && f2Released) { showCollisionSphere = !showCollisionSphere; f2Released = false; }
+            else if (!f2) f2Released = true;
 
-            var lookDir = DirectionFromAngles(_yaw, _pitch);
+            var ms = Mouse.GetState();
+
+            // --- Zoom (scroll wheel) ---
+            int scrollDelta = ms.ScrollWheelValue - _previousScrollValue;
+            if (scrollDelta != 0)
+            {
+                _cameraZoom -= (scrollDelta / 120f) * 1.5f;
+                _cameraZoom = MathHelper.Clamp(_cameraZoom, 1.7f, 40f);
+            }
+            _previousScrollValue = ms.ScrollWheelValue;
 
             if (fishCam)
             {
-                // Position anchored behind the fish's XZ heading; view direction is free
-                var fishFacing = Vector3.Normalize(new Vector3(fish.Direction.X, 0, fish.Direction.Z));
-                Camera.Main.Position  = fish.Position - fishFacing * 6 + new Vector3(0, 2f, 0);
-                Camera.Main.Direction = lookDir;
-
                 fish.ctrlW = w;
                 fish.ctrlA = a;
                 fish.ctrlS = s;
                 fish.ctrlD = d;
+                fish.ctrlQ = up;
+                fish.ctrlE = down;
+
+                if (IsActive)
+                {
+                    int cx = GraphicsDevice.Viewport.Width  / 2;
+                    int cy = GraphicsDevice.Viewport.Height / 2;
+
+                    if (ms.LeftButton == ButtonState.Pressed)
+                    {
+                        // Orbit mode: free rotation around the fish while the button is held
+                        if (!_wasLeftButtonPressed)
+                        {
+                            Mouse.SetPosition(cx, cy);
+                            _wasLeftButtonPressed = true;
+                        }
+                        else
+                        {
+                            _yaw   -= (ms.X - cx) * Sensitivity;
+                            _pitch += (ms.Y - cy) * Sensitivity;
+                            _pitch  = MathHelper.Clamp(_pitch, -PitchLimit, PitchLimit);
+                            Mouse.SetPosition(cx, cy);
+                        }
+
+                        Vector3 offset = DirectionFromAngles(_yaw, _pitch) * _cameraZoom;
+                        Camera.Main.Position  = fish.Position + offset;
+                        Camera.Main.Direction = Vector3.Normalize(fish.Position - Camera.Main.Position);
+                    }
+                    else
+                    {
+                        // Chase mode: smoothly settle back behind the fish
+                        _wasLeftButtonPressed = false;
+
+                        Vector3 fishFacing = Vector3.Normalize(fish.Direction);
+                        Vector3 fishUp     = Vector3.Normalize(fish.Up);
+
+                        Vector3 targetPosition = fish.Position - fishFacing * _cameraZoom + fishUp * (_cameraZoom * 0.2f);
+                        Vector3 targetFocus    = fish.Position + fishFacing * 2f;
+
+                        Camera.Main.Position = Vector3.Lerp(Camera.Main.Position, targetPosition, 0.08f);
+
+                        Vector3 currentFocus = Camera.Main.Position + Camera.Main.Direction;
+                        Camera.Main.Direction = Vector3.Normalize(Vector3.Lerp(currentFocus, targetFocus, 0.1f) - Camera.Main.Position);
+
+                        // Keep yaw/pitch in sync (fish -> camera direction) so orbit mode
+                        // starts exactly from the current chase position, no jump.
+                        var toCam = Vector3.Normalize(Camera.Main.Position - fish.Position);
+                        _yaw   = MathF.Atan2(toCam.X, toCam.Z);
+                        _pitch = MathF.Asin(MathHelper.Clamp(toCam.Y, -1f, 1f));
+                    }
+                }
             }
             else
             {
+                // --- Mouse look (only while window is focused) ---
+                if (IsActive)
+                {
+                    int cx = GraphicsDevice.Viewport.Width  / 2;
+                    int cy = GraphicsDevice.Viewport.Height / 2;
+                    _yaw   -= (ms.X - cx) * Sensitivity;
+                    _pitch -= (ms.Y - cy) * Sensitivity;
+                    _pitch  = MathHelper.Clamp(_pitch, -PitchLimit, PitchLimit);
+                    Mouse.SetPosition(cx, cy);
+                }
+
+                var lookDir = DirectionFromAngles(_yaw, _pitch);
                 Camera.Main.Direction = lookDir;
 
                 var speed = shift ? 0.1f : 0.01f;
@@ -159,7 +259,10 @@ namespace FishSim
             }
 
             foreach (var f in fishes)
-                f.Step();
+            {
+                f.Step(seabed, seabedHeightTransform);
+                f.UpdateAnimation(gameTime);
+            }
 
             particles.Update(gameTime, Camera.Main.Position);
 
@@ -172,11 +275,7 @@ namespace FishSim
             GraphicsDevice.DepthStencilState = DepthStencilState.Default;
             GraphicsDevice.BlendState = BlendState.Opaque;
 
-            var seabedBedrockLevel = Matrix.CreateTranslation(0, -0.05f, 0);
-            var seabedTransforms = new Matrix[]
-            {
-                seabedBedrockLevel * Matrix.CreateScale(5000, 40f, 5000) * Matrix.CreateTranslation(-2500, -60, -2500)
-            };
+            var seabedTransforms = new Matrix[] { seabedHeightTransform };
 
             GraphicsDevice.Clear(Color.Black);
 
@@ -193,6 +292,14 @@ namespace FishSim
             if (showDebugVerlets)
                 foreach (var f in fishes)
                     f.DrawDebugVerlets(Camera.Main, debugSphere);
+
+            if (showCollisionSphere)
+            {
+                GraphicsDevice.BlendState = BlendState.NonPremultiplied;
+                foreach (var f in fishes)
+                    collisionSphere.Draw(f.CollisionWorldTransform, Camera.Main.View, Camera.Main.Projection);
+                GraphicsDevice.BlendState = BlendState.Opaque;
+            }
 
             foreach (var m in seabedTransforms)
                 seabed.Draw(m, Camera.Main);

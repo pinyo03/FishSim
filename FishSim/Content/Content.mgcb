@@ -5,19 +5,15 @@
 /intermediateDir:obj/$(Platform)
 /platform:Windows
 /config:
-/profile:Reach
+/profile:HiDef
 /compress:False
 
 #-------------------------------- References --------------------------------#
 
+/reference:../../FishSim.Pipeline/bin/Debug/net8.0/FishSim.Pipeline.dll
+
 
 #---------------------------------- Content ---------------------------------#
-
-#begin ../Seabed.fx
-/importer:EffectImporter
-/processor:EffectProcessor
-/processorParam:DebugMode=Auto
-/build:../Seabed.fx;Seabed.fx
 
 #begin ../FishLit.fx
 /importer:EffectImporter
@@ -25,15 +21,57 @@
 /processorParam:DebugMode=Auto
 /build:../FishLit.fx;FishLit.fx
 
+#begin ../Seabed.fx
+/importer:EffectImporter
+/processor:EffectProcessor
+/processorParam:DebugMode=Auto
+/build:../Seabed.fx;Seabed.fx
+
 #begin ../Sky.fx
 /importer:EffectImporter
 /processor:EffectProcessor
 /processorParam:DebugMode=Auto
 /build:../Sky.fx;Sky.fx
 
-#begin fish1.fbx
+#begin fishsky1.jpg
+/importer:TextureImporter
+/processor:TextureProcessor
+/processorParam:ColorKeyColor=255,0,255,255
+/processorParam:ColorKeyEnabled=True
+/processorParam:GenerateMipmaps=False
+/processorParam:PremultiplyAlpha=True
+/processorParam:ResizeToPowerOfTwo=False
+/processorParam:MakeSquare=False
+/processorParam:TextureFormat=Color
+/build:fishsky1.jpg
+
+#begin seabedColor.jpg
+/importer:TextureImporter
+/processor:TextureProcessor
+/processorParam:ColorKeyColor=255,0,255,255
+/processorParam:ColorKeyEnabled=True
+/processorParam:GenerateMipmaps=False
+/processorParam:PremultiplyAlpha=True
+/processorParam:ResizeToPowerOfTwo=False
+/processorParam:MakeSquare=False
+/processorParam:TextureFormat=Color
+/build:seabedColor.jpg
+
+#begin tuna-fish/source/EYS_Material_BaseColor.png
+/importer:TextureImporter
+/processor:TextureProcessor
+/processorParam:ColorKeyColor=255,0,255,255
+/processorParam:ColorKeyEnabled=False
+/processorParam:GenerateMipmaps=True
+/processorParam:PremultiplyAlpha=False
+/processorParam:ResizeToPowerOfTwo=False
+/processorParam:MakeSquare=False
+/processorParam:TextureFormat=Color
+/build:tuna-fish/source/EYS_Material_BaseColor.png;tuna-fish/source/EYS_BaseColor_Eye
+
+#begin tuna-fish/source/TunaFish.fbx
 /importer:FbxImporter
-/processor:ModelProcessor
+/processor:FishSkinnedModelProcessor
 /processorParam:ColorKeyColor=0,0,0,0
 /processorParam:ColorKeyEnabled=True
 /processorParam:DefaultEffect=BasicEffect
@@ -48,9 +86,9 @@
 /processorParam:Scale=1
 /processorParam:SwapWindingOrder=False
 /processorParam:TextureFormat=Compressed
-/build:fish1.fbx
+/build:tuna-fish/source/TunaFish.fbx;tuna-fish/source/TunaFish
 
-#begin fishsky1.jpg
+#begin tuna-fish/textures/EYS_Material_Metallic.png
 /importer:TextureImporter
 /processor:TextureProcessor
 /processorParam:ColorKeyColor=255,0,255,255
@@ -60,9 +98,9 @@
 /processorParam:ResizeToPowerOfTwo=False
 /processorParam:MakeSquare=False
 /processorParam:TextureFormat=Color
-/build:fishsky1.jpg
+/build:tuna-fish/textures/EYS_Material_Metallic.png;tuna-fish/textures/EYS_Material_Metallic
 
-#begin images/clownfish_0.png
+#begin tuna-fish/textures/EYS_Material_Normal.png
 /importer:TextureImporter
 /processor:TextureProcessor
 /processorParam:ColorKeyColor=255,0,255,255
@@ -72,9 +110,9 @@
 /processorParam:ResizeToPowerOfTwo=False
 /processorParam:MakeSquare=False
 /processorParam:TextureFormat=Color
-/build:images/clownfish_0.png
+/build:tuna-fish/textures/EYS_Material_Normal.png;tuna-fish/textures/EYS_Material_Normal
 
-#begin relebook-export-ggach148215-001.jpg
+#begin tuna-fish/textures/EYS_Material_Roughness.png
 /importer:TextureImporter
 /processor:TextureProcessor
 /processorParam:ColorKeyColor=255,0,255,255
@@ -84,9 +122,9 @@
 /processorParam:ResizeToPowerOfTwo=False
 /processorParam:MakeSquare=False
 /processorParam:TextureFormat=Color
-/build:relebook-export-ggach148215-001.jpg
+/build:tuna-fish/textures/EYS_Material_Roughness.png;tuna-fish/textures/EYS_Material_Roughness
 
-#begin relebook-export-ggach148215-002.jpg
+#begin tuna-fish/textures/Material_ambient_occlusion.png
 /importer:TextureImporter
 /processor:TextureProcessor
 /processorParam:ColorKeyColor=255,0,255,255
@@ -96,9 +134,9 @@
 /processorParam:ResizeToPowerOfTwo=False
 /processorParam:MakeSquare=False
 /processorParam:TextureFormat=Color
-/build:relebook-export-ggach148215-002.jpg
+/build:tuna-fish/textures/Material_ambient_occlusion.png;tuna-fish/textures/Material_ambient_occlusion
 
-#begin seabedColor.jpg
+#begin tuna-fish/textures/TunaHLW_Material_BaseColor.png
 /importer:TextureImporter
 /processor:TextureProcessor
 /processorParam:ColorKeyColor=255,0,255,255
@@ -108,5 +146,41 @@
 /processorParam:ResizeToPowerOfTwo=False
 /processorParam:MakeSquare=False
 /processorParam:TextureFormat=Color
-/build:seabedColor.jpg
+/build:tuna-fish/textures/TunaHLW_Material_BaseColor.png;tuna-fish/textures/TunaHLW_Material_BaseColor
+
+#begin tuna-fish/textures/TunaHLW_Material_Metallic.png
+/importer:TextureImporter
+/processor:TextureProcessor
+/processorParam:ColorKeyColor=255,0,255,255
+/processorParam:ColorKeyEnabled=True
+/processorParam:GenerateMipmaps=False
+/processorParam:PremultiplyAlpha=True
+/processorParam:ResizeToPowerOfTwo=False
+/processorParam:MakeSquare=False
+/processorParam:TextureFormat=Color
+/build:tuna-fish/textures/TunaHLW_Material_Metallic.png;tuna-fish/textures/TunaHLW_Material_Metallic
+
+#begin tuna-fish/textures/TunaHLW_Material_Normal.png
+/importer:TextureImporter
+/processor:TextureProcessor
+/processorParam:ColorKeyColor=255,0,255,255
+/processorParam:ColorKeyEnabled=True
+/processorParam:GenerateMipmaps=False
+/processorParam:PremultiplyAlpha=True
+/processorParam:ResizeToPowerOfTwo=False
+/processorParam:MakeSquare=False
+/processorParam:TextureFormat=Color
+/build:tuna-fish/textures/TunaHLW_Material_Normal.png;tuna-fish/textures/TunaHLW_Material_Normal
+
+#begin tuna-fish/textures/TunaHLW_Material_Roughness.png
+/importer:TextureImporter
+/processor:TextureProcessor
+/processorParam:ColorKeyColor=255,0,255,255
+/processorParam:ColorKeyEnabled=True
+/processorParam:GenerateMipmaps=False
+/processorParam:PremultiplyAlpha=True
+/processorParam:ResizeToPowerOfTwo=False
+/processorParam:MakeSquare=False
+/processorParam:TextureFormat=Color
+/build:tuna-fish/textures/TunaHLW_Material_Roughness.png;tuna-fish/textures/TunaHLW_Material_Roughness
 

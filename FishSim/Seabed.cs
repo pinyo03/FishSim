@@ -18,15 +18,23 @@ namespace FishSim
         VertexBuffer flatPlaneVB;
         IndexBuffer flatPlaneIB;
 
+        SeabedGenerationSettings settings;
+        PerlinNoise noise;
+        Color[] texData;
+        int texWidth, texHeight;
+
         public Seabed(GraphicsDevice dev, Texture2D tex, Vector3 sunDir, Effect effect, SeabedGenerationSettings settings = null)
         {
             settings ??= new SeabedGenerationSettings();
+            this.settings = settings;
             int w = settings.Resolution;
             int h = settings.Resolution;
-            var noise = new PerlinNoise(settings.Seed);
+            noise = new PerlinNoise(settings.Seed);
 
             const float TileCount = 100f; // a shaderben használt diffúz tiling
-            var texData = new Color[tex.Width * tex.Height];
+            texWidth = tex.Width;
+            texHeight = tex.Height;
+            texData = new Color[tex.Width * tex.Height];
             tex.GetData(texData);
 
             var vbData = new VertexPositionNormalTexture[w * h];
@@ -108,6 +116,31 @@ namespace FishSim
         public void UpdateCaustics(float time)
         {
             CausticsSettings.Apply(effect, time);
+        }
+
+        // Visszaadja a tereppont vilag-Y magassagat a megadott (worldX, worldZ) pont alatt,
+        // ugyanazzal a zaj- es szin-alapu szamitassal, mint amivel a vertexbuffer generalodott.
+        public float GetHeightAt(float worldX, float worldZ, Matrix world)
+        {
+            const float TileCount = 100f;
+            var local = Vector3.Transform(new Vector3(worldX, 0, worldZ), Matrix.Invert(world));
+            float u = MathHelper.Clamp(local.X, 0f, 1f);
+            float v = MathHelper.Clamp(local.Z, 0f, 1f);
+
+            float n = noise.Fbm(u * settings.Frequency, v * settings.Frequency, settings.Octaves, settings.Persistence, settings.Lacunarity);
+            float height = (n + 1f) * 0.5f * settings.HeightScale;
+
+            float tu = (u * TileCount) % 1f;
+            float tv = (v * TileCount) % 1f;
+            int tx = (int)(tu * texWidth) % texWidth;
+            int ty = (int)(tv * texHeight) % texHeight;
+            var color = texData[ty * texWidth + tx];
+            float luminance = (color.R + color.G + color.B) / (3f * 255f);
+            height += (luminance - 0.5f) * settings.ColorHeightInfluence;
+
+            height = MathHelper.Clamp(height, 0f, 1f);
+
+            return Vector3.Transform(new Vector3(u, height, v), world).Y;
         }
 
         public void Draw(Matrix world, Camera cam)
