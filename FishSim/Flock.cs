@@ -10,6 +10,10 @@ namespace FishSim
         readonly List<Fish> boids;
         readonly float[] noisePhasesX;
         readonly float[] noisePhasesY;
+        readonly bool[] targetAhead;   // true = 10m előre, false = 10m hátra
+        readonly float[] switchTimers;
+        readonly float[] switchIntervals;  // 40..60 mp között random per boid
+        readonly Random rng = new Random();
         float noiseTime;
 
         public const float SpawnRadius = 40.0f;
@@ -33,13 +37,19 @@ namespace FishSim
         {
             this.leader = leader;
             this.boids  = boids;
-            var rng = new Random();
-            noisePhasesX = new float[boids.Count];
-            noisePhasesY = new float[boids.Count];
+            var rng = this.rng;
+            noisePhasesX    = new float[boids.Count];
+            noisePhasesY    = new float[boids.Count];
+            targetAhead     = new bool[boids.Count];
+            switchTimers    = new float[boids.Count];
+            switchIntervals = new float[boids.Count];
             for (int i = 0; i < boids.Count; i++)
             {
-                noisePhasesX[i] = (float)(rng.NextDouble() * MathHelper.TwoPi);
-                noisePhasesY[i] = (float)(rng.NextDouble() * MathHelper.TwoPi);
+                noisePhasesX[i]    = (float)(rng.NextDouble() * MathHelper.TwoPi);
+                noisePhasesY[i]    = (float)(rng.NextDouble() * MathHelper.TwoPi);
+                targetAhead[i]     = rng.NextDouble() < 0.5;
+                switchIntervals[i] = 40f + (float)(rng.NextDouble() * 20f);
+                boids[i].SizeScale = 0.7f + (float)(rng.NextDouble() * 0.6f);
             }
         }
 
@@ -47,6 +57,16 @@ namespace FishSim
         {
             float dt = (float)gameTime.ElapsedGameTime.TotalSeconds;
             noiseTime += dt * 0.4f;
+            for (int i = 0; i < boids.Count; i++)
+            {
+                switchTimers[i] += dt;
+                if (switchTimers[i] >= switchIntervals[i])
+                {
+                    switchTimers[i]    = 0f;
+                    switchIntervals[i] = 40f + (float)(rng.NextDouble() * 20f);
+                    targetAhead[i]     = !targetAhead[i];
+                }
+            }
 
             for (int bi = 0; bi < boids.Count; bi++)
             {
@@ -94,18 +114,24 @@ namespace FishSim
                     }
                 }
 
-                // Leader vonzás (erősebb ha messze); kizárási zónán belül nulla + erős taszítás
-                Vector3 toLeader = leader.Position - b.Position;
-                float leaderDist = toLeader.Length();
-                Vector3 leaderDir = leaderDist > 0.001f ? toLeader / leaderDist : Vector3.Zero;
-                if (leaderDist > LeaderRadius) leaderDir *= 2.5f;
+                // Célpont: 10m előre vagy 10m hátra a leadertől (30mp-enként vált).
+                Vector3 lFwd = Vector3.Normalize(leader.Direction);
+                Vector3 slot = leader.Position + lFwd * (targetAhead[bi] ? 10f : -10f);
 
+                Vector3 toSlot    = slot - b.Position;
+                float   slotDist  = toSlot.Length();
+                Vector3 leaderDir = slotDist > 0.001f ? toSlot / slotDist : Vector3.Zero;
+                if (slotDist > LeaderRadius) leaderDir *= 2.5f;
+
+                // Fizikai kizárási zóna: tényleges leader pozíció alapján.
+                Vector3 toActualLeader = leader.Position - b.Position;
+                float   leaderDist     = toActualLeader.Length();
                 if (leaderDist < LeaderExclusionRadius)
                 {
-                    leaderDir = Vector3.Zero;  // zónán belül nincs vonzás
+                    leaderDir = Vector3.Zero;
                     if (leaderDist > 0.001f)
                     {
-                        float t2 = 1.0f - leaderDist / LeaderExclusionRadius;  // 0..1, erősebb közelebb
+                        float t2 = 1.0f - leaderDist / LeaderExclusionRadius;
                         sepVec += Vector3.Normalize(b.Position - leader.Position) * t2 * 20.0f;
                     }
                 }

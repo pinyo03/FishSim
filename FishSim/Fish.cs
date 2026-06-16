@@ -17,6 +17,7 @@ namespace FishSim
     class Fish : Body
     {
         public bool ctrlW, ctrlS, ctrlA, ctrlD, ctrlQ, ctrlE;
+        public float SizeScale = 1.0f;
         public Vector3 BoidSteerDir = Vector3.Zero;  // ha non-zero: AI proporcióalis irányítás
         public Vector3[] posErrors;
         // Az utkozesi ellipszoid felmeretei a hal lokalis tengelyei menten (elore/Direction, oldalra/Right, fel/Up).
@@ -135,7 +136,7 @@ namespace FishSim
         }
         public void Draw(Camera cam)
         {
-            var world = localTransform * WorldTransform;
+            var world = Matrix.CreateScale(SizeScale) * localTransform * WorldTransform;
             var worldIT = Matrix.Transpose(Matrix.Invert(world));
             foreach (var mesh in model.Meshes)
             {
@@ -291,7 +292,7 @@ namespace FishSim
             // vetitve yaw/pitch nyomatekot kapunk; az ores tengelyen nincs kiegyensulyozatlan ero.
             if (BoidSteerDir.LengthSquared() > 0.0001f)
             {
-                const float aiSpeed  = 1.5f;
+                const float aiSpeed  = 2.8f;  // > player speed (2.0f) hogy utolérjék a leadert
                 const float steerK   = 1.5f;
                 for (int i = 0; i < 4; i++) verlets[i].Acc += d * aiSpeed;
                 float yaw   = Vector3.Dot(BoidSteerDir, r) * steerK;
