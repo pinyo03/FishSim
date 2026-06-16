@@ -100,11 +100,11 @@ namespace FishSim
             var flockModel = Content.Load<Model>("tuna-fish/source/TunaFish");
             var flockBoids = new System.Collections.Generic.List<Fish>();
             var spawnRng   = new Random(42);
-            for (int i = 0; i < 200; i++)
+            for (int i = 0; i < 120; i++)
             {
                 Vector3 candidate = Vector3.Zero;
                 bool placed = false;
-                for (int attempt = 0; attempt < 100; attempt++)
+                for (int attempt = 0; attempt < 10; attempt++)
                 {
                     candidate = fish.Position + RandomOnUnitSphere(spawnRng) * Flock.SpawnRadius;
                     candidate.Y = MathHelper.Clamp(candidate.Y, -55f, -5f);
@@ -188,14 +188,14 @@ namespace FishSim
 
             var coralRng = new Random(123);
             var coralPositions = new List<Vector2>();
-            for (int i = 0; i < 100; i++)
+            for (int i = 0; i < 80; i++)
             {
                 float px = 0, pz = 0;
                 bool placed = false;
                 for (int attempt = 0; attempt < 300; attempt++)
                 {
                     float angle = (float)(coralRng.NextDouble() * MathHelper.TwoPi);
-                    float r = (float)(Math.Sqrt(coralRng.NextDouble()) * 250f);
+                    float r = (float)(Math.Sqrt(coralRng.NextDouble()) * 225f);
                     px = r * MathF.Cos(angle);
                     pz = r * MathF.Sin(angle);
                     bool overlap = false;

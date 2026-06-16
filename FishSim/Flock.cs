@@ -24,14 +24,14 @@ namespace FishSim
         const float CohesionRadius       = 30.0f;
         const float LeaderRadius         = 40.0f;
         const float HardSepRadius        = 2.4f;
-        public const float LeaderExclusionRadius = 4.0f;  // leader körüli "tiltott zóna" sugara
+        public const float LeaderExclusionRadius = 3.0f;  // leader körüli "tiltott zóna" sugara
         const float LeaderRestitution    = 0.4f;
 
-        const float SeparationWeight = 2.0f;
-        const float AlignmentWeight  = 0.8f;
-        const float CohesionWeight   = 1.0f;
+        const float SeparationWeight = 1.0f;
+        const float AlignmentWeight  = 1.8f;
+        const float CohesionWeight   = 1.8f;
         const float LeaderWeight     = 1.5f;
-        const float RandomWeight     = 0.1f;
+        const float RandomWeight     = 0.02f;
 
         public Flock(Fish leader, List<Fish> boids)
         {
