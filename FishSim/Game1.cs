@@ -163,7 +163,7 @@ namespace FishSim
             if (scrollDelta != 0)
             {
                 _cameraZoom -= (scrollDelta / 120f) * 1.5f;
-                _cameraZoom = MathHelper.Clamp(_cameraZoom, 1.7f, 40f);
+                _cameraZoom = MathHelper.Clamp(_cameraZoom, 1.95f, 40f);
             }
             _previousScrollValue = ms.ScrollWheelValue;
 

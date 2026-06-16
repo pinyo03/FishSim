@@ -18,7 +18,7 @@ float  WaterFogMaxBlend = 1;
 // Csak a sky shaderhez: fuggolegesen felfele nezve egyre kevesebb viz van a kamera felett,
 // ezert a kod max-keveredese a vizszinteshez tartozo WaterFogMaxBlend-rol negyzetes
 // gorbe szerint ennyire (0..1) csokken, ha pontosan felfele nezunk (viewDir.y = 1).
-float  SkyFogMinBlend = 0.35;
+float  SkyFogMinBlend = 0.775;
 
 // Magassag alapjan interpolalt "viz alapszin" - sotet kek a melyben, egyre
 // vilagosabb/kekebb a felszin felé. A also/felso hataron tul fix szin (nincs extrapolacio).

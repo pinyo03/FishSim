@@ -20,8 +20,8 @@ namespace FishSim
         public static float WaterSurfaceY = 0.0f;
         public static float SkyIntensity = 0.05f;
         public static float SkyCeilingHeight = 40.0f;
-        public static float SkyAngleStart = 0.25f;
-        public static float SkyAngleFull = 0.7f;
+        public static float SkyAngleStart = 0.55f;
+        public static float SkyAngleFull = 0.85f;
 
         public static void Apply(Effect effect, float time)
         {

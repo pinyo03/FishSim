@@ -20,7 +20,7 @@ namespace FishSim
             new Vector3(0.35f, 0.60f, 0.75f), // y >= BaseY + 7*ZoneStep
         };
         public static float ZoneBaseY = -60f;
-        public static float ZoneStep = 40f;
+        public static float ZoneStep = 80f;
 
         // Tavolsag-alapu exponencialis kod surusege (lasd WaterColor.fxh: ApplyDepthFog).
         // fogFactor = 1 - exp(-FogDensity * dist), ahol dist a kamera -> fragment 3D tavolsaga.

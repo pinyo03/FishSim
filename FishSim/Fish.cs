@@ -87,11 +87,11 @@ namespace FishSim
                     effect.Parameters["RoughnessTexture"].SetValue(material.Roughness);
                     effect.Parameters["AOTexture"].SetValue(material.AO ?? whiteAO);
                     effect.Parameters["HasAO"].SetValue(material.AO != null);
-                    effect.Parameters["AmbientColor"].SetValue(new Vector3(0.3f, 0.3f, 0.3f));
+                    effect.Parameters["AmbientColor"].SetValue(new Vector3(0.12f, 0.22f, 0.45f));
                     effect.Parameters["Light0Dir"].SetValue(Vector3.Normalize(-sunDir));
-                    effect.Parameters["Light0Color"].SetValue(new Vector3(0.7f, 0.7f, 0.7f));
+                    effect.Parameters["Light0Color"].SetValue(new Vector3(0.45f, 0.60f, 0.90f));
                     effect.Parameters["Light1Dir"].SetValue(Vector3.Down);
-                    effect.Parameters["Light1Color"].SetValue(new Vector3(0.2f, 0.2f, 0.2f));
+                    effect.Parameters["Light1Color"].SetValue(new Vector3(0.08f, 0.14f, 0.30f));
 
                     // A Body mesh (csontvazas, animalt) a skinning technique-et hasznalja; a szem rideg marad.
                     if (!isEyes && animationPlayer != null)
@@ -120,7 +120,7 @@ namespace FishSim
         public void UpdateCaustics(float time)
         {
             // Kekes ambient a hal aktualis magassagahoz tartozo viz-szin alapjan.
-            var ambient = WaterColorSettings.GetColorAtHeight(Position.Y) * 0.6f;
+            var ambient = WaterColorSettings.GetColorAtHeight(Position.Y) * 2.1f;
             foreach (var mesh in model.Meshes)
                 foreach (var part in mesh.MeshParts)
                 {
@@ -188,7 +188,7 @@ namespace FishSim
                 // A pozicio-korrekcio pPos-t is elcsusztatja, hogy ne injektaljon extra
                 // (a korrekciobol szarmazo) sebesseget; csak a tenyleges lefele-sebesseg
                 // egy kis resze (restitution) pattan vissza.
-                const float restitution = 0.45f;
+                const float restitution = 0.675f;
                 for (int i = 0; i < verlets.Length; i++)
                 {
                     verlets[i].Pos.Y += penetration;
