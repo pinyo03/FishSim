@@ -17,6 +17,7 @@ namespace FishSim
     class Fish : Body
     {
         public bool ctrlW, ctrlS, ctrlA, ctrlD, ctrlQ, ctrlE;
+        public Vector3 BoidSteerDir = Vector3.Zero;  // ha non-zero: AI proporcióalis irányítás
         public Vector3[] posErrors;
         // Az utkozesi ellipszoid felmeretei a hal lokalis tengelyei menten (elore/Direction, oldalra/Right, fel/Up).
         public float CollisionRadiusForward = 1.2f;
@@ -53,7 +54,7 @@ namespace FishSim
             graphicsDevice = fish.graphicsDevice;
             posErrors = new Vector3[verlets.Length];
         }
-        public Fish(GraphicsDevice dev, Model model, FishMaterial bodyMaterial, FishMaterial eyesMaterial, Effect fishEffect, Vector3 sunDir)
+        public Fish(GraphicsDevice dev, Model model, FishMaterial bodyMaterial, FishMaterial eyesMaterial, Effect fishEffect, Vector3 sunDir, Vector3? spawnPos = null)
         {
             this.model = model;
             this.graphicsDevice = dev;
@@ -101,10 +102,14 @@ namespace FishSim
                 }
             }
             float w = 0.2f, l = 1;
-            var rng = new Random();
-            var pos = new Vector3(
-                (float)rng.NextDouble() * 20, -30,
-                (float)rng.NextDouble() * 20);
+            Vector3 pos;
+            if (spawnPos.HasValue)
+                pos = spawnPos.Value;
+            else
+            {
+                var rng = new Random();
+                pos = new Vector3((float)rng.NextDouble() * 20, -30, (float)rng.NextDouble() * 20);
+            }
             verlets = new Verlet[] {
                 new Verlet(pos + new Vector3(l, 0, -2*w)),
                 new Verlet(pos + new Vector3(l, 0, 2*w)),
@@ -279,6 +284,22 @@ namespace FishSim
             {
                 verlets[0].Acc += u * turnSpeed; verlets[1].Acc += u * turnSpeed;
                 verlets[2].Acc -= u * turnSpeed; verlets[3].Acc -= u * turnSpeed;
+            }
+
+            // AI boid iranyitas: proporcialis nyomatek + elore tolero ero (nem binalris ctrl-flagek).
+            // BoidSteerDir a kivant vilagter-beli irany (normalizalt). A hal lokalis tengelyeire
+            // vetitve yaw/pitch nyomatekot kapunk; az ores tengelyen nincs kiegyensulyozatlan ero.
+            if (BoidSteerDir.LengthSquared() > 0.0001f)
+            {
+                const float aiSpeed  = 1.5f;
+                const float steerK   = 1.5f;
+                for (int i = 0; i < 4; i++) verlets[i].Acc += d * aiSpeed;
+                float yaw   = Vector3.Dot(BoidSteerDir, r) * steerK;
+                float pitch = Vector3.Dot(BoidSteerDir, u) * steerK;
+                // yaw>0 → orr jobra (r iranyba), pitch>0 → orr fel (u iranyba)
+                Vector3 torque = r * yaw + u * pitch;
+                verlets[0].Acc += torque; verlets[1].Acc += torque;
+                verlets[2].Acc -= torque; verlets[3].Acc -= torque;
             }
         }
     }

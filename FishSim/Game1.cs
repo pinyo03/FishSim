@@ -31,6 +31,7 @@ namespace FishSim
         bool f2Released = true;
 
         Matrix seabedHeightTransform;
+        Flock flock;
 
         float _yaw;
         float _pitch;
@@ -88,6 +89,39 @@ namespace FishSim
             };
             fish = new Fish(GraphicsDevice, Content.Load<Model>("tuna-fish/source/TunaFish"), bodyMaterial, eyesMaterial, fishEffect, sky.SunDir);
             fishes.Add(fish);
+
+            var flockModel = Content.Load<Model>("tuna-fish/source/TunaFish");
+            var flockBoids = new System.Collections.Generic.List<Fish>();
+            var spawnRng   = new Random(42);
+            for (int i = 0; i < 200; i++)
+            {
+                Vector3 candidate = Vector3.Zero;
+                bool placed = false;
+                for (int attempt = 0; attempt < 100; attempt++)
+                {
+                    candidate = fish.Position + RandomOnUnitSphere(spawnRng) * Flock.SpawnRadius;
+                    candidate.Y = MathHelper.Clamp(candidate.Y, -55f, -5f);
+
+                    bool overlaps = false;
+                    foreach (var f in fishes)
+                    {
+                        float minDist = f == fish
+                            ? Flock.LeaderExclusionRadius + 1.0f
+                            : Flock.MinSpawnGap;
+                        if ((f.Position - candidate).Length() < minDist)
+                        { overlaps = true; break; }
+                    }
+
+                    if (!overlaps) { placed = true; break; }
+                }
+                if (!placed) continue;
+
+                var ai = new Fish(GraphicsDevice, flockModel, bodyMaterial, eyesMaterial, fishEffect, sky.SunDir, candidate);
+                fishes.Add(ai);
+                flockBoids.Add(ai);
+            }
+            flock = new Flock(fish, flockBoids);
+
             seabed = new Seabed(GraphicsDevice, Content.Load<Texture2D>("seabedColor"),
                 sky.SunDir, Content.Load<Effect>("Seabed"));
 
@@ -117,6 +151,16 @@ namespace FishSim
             seabedHeightTransform = Matrix.CreateTranslation(0, -0.05f, 0)
                 * Matrix.CreateScale(5000, 40f, 5000)
                 * Matrix.CreateTranslation(-2500, -60, -2500);
+        }
+
+        static Vector3 RandomOnUnitSphere(Random rng)
+        {
+            float theta = (float)(rng.NextDouble() * MathHelper.TwoPi);
+            float phi   = MathF.Acos((float)(2.0 * rng.NextDouble() - 1.0));
+            return new Vector3(
+                MathF.Sin(phi) * MathF.Cos(theta),
+                MathF.Sin(phi) * MathF.Sin(theta),
+                MathF.Cos(phi));
         }
 
         // Converts yaw (horizontal) and pitch (vertical) angles into a unit direction vector.
@@ -258,11 +302,16 @@ namespace FishSim
                 if (down) Camera.Main.Position -= new Vector3(0, speed, 0);
             }
 
+            flock.Update(gameTime);
+
             foreach (var f in fishes)
             {
                 f.Step(seabed, seabedHeightTransform);
                 f.UpdateAnimation(gameTime);
             }
+
+            flock.ApplyLeaderExclusion();
+            flock.ApplyHardSeparation();
 
             particles.Update(gameTime, Camera.Main.Position);
 
