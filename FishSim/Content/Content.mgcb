@@ -12,7 +12,6 @@
 
 /reference:../../FishSim.Pipeline/bin/Debug/net8.0/FishSim.Pipeline.dll
 
-
 #---------------------------------- Content ---------------------------------#
 
 #begin ../FishLit.fx
@@ -32,6 +31,97 @@
 /processor:EffectProcessor
 /processorParam:DebugMode=Auto
 /build:../Sky.fx;Sky.fx
+
+#begin ../../Pictures/coral/Textures/coral fbx_lambert1_BaseColor.png
+/importer:TextureImporter
+/processor:TextureProcessor
+/processorParam:ColorKeyColor=255,0,255,255
+/processorParam:ColorKeyEnabled=True
+/processorParam:GenerateMipmaps=False
+/processorParam:PremultiplyAlpha=True
+/processorParam:ResizeToPowerOfTwo=False
+/processorParam:MakeSquare=False
+/processorParam:TextureFormat=Color
+/build:../../Pictures/coral/Textures/coral fbx_lambert1_BaseColor.png;Pictures/coral/Textures/coral fbx_lambert1_BaseColor_0
+
+#begin coral-piece/source/coral fbx finished.fbx
+/importer:FbxImporter
+/processor:ModelProcessor
+/processorParam:ColorKeyColor=0,0,0,0
+/processorParam:ColorKeyEnabled=True
+/processorParam:DefaultEffect=BasicEffect
+/processorParam:GenerateMipmaps=True
+/processorParam:GenerateTangentFrames=True
+/processorParam:PremultiplyTextureAlpha=True
+/processorParam:PremultiplyVertexColors=True
+/processorParam:ResizeTexturesToPowerOfTwo=False
+/processorParam:RotationX=0
+/processorParam:RotationY=0
+/processorParam:RotationZ=0
+/processorParam:Scale=1
+/processorParam:SwapWindingOrder=False
+/processorParam:TextureFormat=Compressed
+/build:coral-piece/source/coral fbx finished.fbx;coral-piece/source/coral fbx finished
+
+#begin coral-piece/source/Planes.png
+/importer:TextureImporter
+/processor:TextureProcessor
+/processorParam:ColorKeyColor=255,0,255,255
+/processorParam:ColorKeyEnabled=True
+/processorParam:GenerateMipmaps=False
+/processorParam:PremultiplyAlpha=True
+/processorParam:ResizeToPowerOfTwo=False
+/processorParam:MakeSquare=False
+/processorParam:TextureFormat=Color
+/build:coral-piece/source/Planes.png;coral-piece/source/Planes
+
+#begin coral-piece/Textures/coral_fbx_lambert1_BaseColor.png
+/importer:TextureImporter
+/processor:TextureProcessor
+/processorParam:ColorKeyColor=255,0,255,255
+/processorParam:ColorKeyEnabled=True
+/processorParam:GenerateMipmaps=False
+/processorParam:PremultiplyAlpha=True
+/processorParam:ResizeToPowerOfTwo=False
+/processorParam:MakeSquare=False
+/processorParam:TextureFormat=Color
+/build:coral-piece/Textures/coral_fbx_lambert1_BaseColor.png;coral-piece/Textures/coral_fbx_lambert1_BaseColor
+
+#begin coral-piece/Textures/coral_fbx_lambert1_Metallic.png
+/importer:TextureImporter
+/processor:TextureProcessor
+/processorParam:ColorKeyColor=255,0,255,255
+/processorParam:ColorKeyEnabled=True
+/processorParam:GenerateMipmaps=False
+/processorParam:PremultiplyAlpha=True
+/processorParam:ResizeToPowerOfTwo=False
+/processorParam:MakeSquare=False
+/processorParam:TextureFormat=Color
+/build:coral-piece/Textures/coral_fbx_lambert1_Metallic.png;coral-piece/Textures/coral_fbx_lambert1_Metallic
+
+#begin coral-piece/Textures/coral_fbx_lambert1_Roughness.png
+/importer:TextureImporter
+/processor:TextureProcessor
+/processorParam:ColorKeyColor=255,0,255,255
+/processorParam:ColorKeyEnabled=True
+/processorParam:GenerateMipmaps=False
+/processorParam:PremultiplyAlpha=True
+/processorParam:ResizeToPowerOfTwo=False
+/processorParam:MakeSquare=False
+/processorParam:TextureFormat=Color
+/build:coral-piece/Textures/coral_fbx_lambert1_Roughness.png;coral-piece/Textures/coral_fbx_lambert1_Roughness
+
+#begin coral-piece/Textures/inverted.png
+/importer:TextureImporter
+/processor:TextureProcessor
+/processorParam:ColorKeyColor=255,0,255,255
+/processorParam:ColorKeyEnabled=True
+/processorParam:GenerateMipmaps=False
+/processorParam:PremultiplyAlpha=True
+/processorParam:ResizeToPowerOfTwo=False
+/processorParam:MakeSquare=False
+/processorParam:TextureFormat=Color
+/build:coral-piece/Textures/inverted.png;coral-piece/Textures/inverted
 
 #begin fishsky1.jpg
 /importer:TextureImporter

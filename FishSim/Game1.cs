@@ -33,6 +33,13 @@ namespace FishSim
         Matrix seabedHeightTransform;
         Flock flock;
 
+        Model coralModel;
+        List<Matrix> coralTransforms = new();
+        List<(Vector3 center, float rxz, float ry)> coralColliders = new();
+        BasicGeometry coralCollisionEllipsoid;
+        bool showCoralCollision = false;
+        bool f3Released = true;
+
         float _yaw;
         float _pitch;
         const float Sensitivity = 0.003f;
@@ -151,6 +158,71 @@ namespace FishSim
             seabedHeightTransform = Matrix.CreateTranslation(0, -0.05f, 0)
                 * Matrix.CreateScale(5000, 40f, 5000)
                 * Matrix.CreateTranslation(-2500, -60, -2500);
+
+            coralModel = Content.Load<Model>("coral-piece/source/coral fbx finished");
+            var coralColorTex    = Content.Load<Texture2D>("coral-piece/Textures/coral_fbx_lambert1_BaseColor");
+            var coralMetallicTex = Content.Load<Texture2D>("coral-piece/Textures/coral_fbx_lambert1_Metallic");
+            var coralRoughTex    = Content.Load<Texture2D>("coral-piece/Textures/coral_fbx_lambert1_Roughness");
+            var flatNormal = new Texture2D(GraphicsDevice, 1, 1);
+            flatNormal.SetData(new[] { new Color(128, 128, 255) });
+            var whiteAO = new Texture2D(GraphicsDevice, 1, 1);
+            whiteAO.SetData(new[] { Color.White });
+            var coralEffect = Content.Load<Effect>("FishLit");
+            foreach (var mesh in coralModel.Meshes)
+                foreach (var part in mesh.MeshParts)
+                {
+                    var eff = coralEffect.Clone();
+                    eff.Parameters["Texture"].SetValue(coralColorTex);
+                    eff.Parameters["NormalTexture"].SetValue(flatNormal);
+                    eff.Parameters["MetallicTexture"].SetValue(coralMetallicTex);
+                    eff.Parameters["RoughnessTexture"].SetValue(coralRoughTex);
+                    eff.Parameters["AOTexture"].SetValue(whiteAO);
+                    eff.Parameters["HasAO"].SetValue(false);
+                    eff.Parameters["AmbientColor"].SetValue(new Vector3(0.30f, 0.30f, 0.32f));
+                    eff.Parameters["Light0Dir"].SetValue(Vector3.Normalize(-sky.SunDir));
+                    eff.Parameters["Light0Color"].SetValue(new Vector3(0.75f, 0.78f, 0.80f));
+                    eff.Parameters["Light1Dir"].SetValue(Vector3.Down);
+                    eff.Parameters["Light1Color"].SetValue(new Vector3(0.12f, 0.13f, 0.15f));
+                    part.Effect = eff;
+                }
+
+            var coralRng = new Random(123);
+            var coralPositions = new List<Vector2>();
+            for (int i = 0; i < 100; i++)
+            {
+                float px = 0, pz = 0;
+                bool placed = false;
+                for (int attempt = 0; attempt < 300; attempt++)
+                {
+                    float angle = (float)(coralRng.NextDouble() * MathHelper.TwoPi);
+                    float r = (float)(Math.Sqrt(coralRng.NextDouble()) * 250f);
+                    px = r * MathF.Cos(angle);
+                    pz = r * MathF.Sin(angle);
+                    bool overlap = false;
+                    foreach (var cp in coralPositions)
+                        if ((new Vector2(cp.X - px, cp.Y - pz)).Length() < 12f)
+                        { overlap = true; break; }
+                    if (!overlap) { placed = true; break; }
+                }
+                if (!placed) continue;
+
+                coralPositions.Add(new Vector2(px, pz));
+                float py = seabed.GetHeightAt(px, pz, seabedHeightTransform);
+                float scale = 0.5f + (float)coralRng.NextDouble() * 4.5f;
+                float rotY = (float)(coralRng.NextDouble() * MathHelper.TwoPi);
+                coralTransforms.Add(
+                    Matrix.CreateScale(scale)
+                    * Matrix.CreateRotationY(rotY)
+                    * Matrix.CreateTranslation(px, py, pz));
+                float rxz = scale * 1.2f;
+                float ry  = scale * 2.5f * 0.7f;
+                var offsetWorld = Vector3.TransformNormal(new Vector3(-rxz * 0.4f, 0, rxz * 0.3f), Matrix.CreateRotationY(rotY));
+                coralColliders.Add((new Vector3(px, py + ry, pz) + offsetWorld, rxz, ry));
+            }
+            
+            coralCollisionEllipsoid = BasicGeometry.CreateSphere(GraphicsDevice);
+            coralCollisionEllipsoid.Effect.DiffuseColor = Color.Orange.ToVector3();
+            coralCollisionEllipsoid.Effect.Alpha = 0.5f;
         }
 
         static Vector3 RandomOnUnitSphere(Random rng)
@@ -199,6 +271,10 @@ namespace FishSim
             var f2 = ks.IsKeyDown(Keys.F2);
             if (f2 && f2Released) { showCollisionSphere = !showCollisionSphere; f2Released = false; }
             else if (!f2) f2Released = true;
+
+            var f3 = ks.IsKeyDown(Keys.F3);
+            if (f3 && f3Released) { showCoralCollision = !showCoralCollision; f3Released = false; }
+            else if (!f3) f3Released = true;
 
             var ms = Mouse.GetState();
 
@@ -308,6 +384,25 @@ namespace FishSim
             {
                 f.Step(seabed, seabedHeightTransform);
                 f.UpdateAnimation(gameTime);
+
+                foreach (var (center, rxz, ry) in coralColliders)
+                {
+                    Vector3 delta = f.Position - center;
+                    const float fishR = 1.0f;
+                    float ex = delta.X / (rxz + fishR);
+                    float ey = delta.Y / (ry  + fishR);
+                    float ez = delta.Z / (rxz + fishR);
+                    float distUnit = MathF.Sqrt(ex * ex + ey * ey + ez * ez);
+                    if (distUnit < 1f && distUnit > 0.0001f)
+                    {
+                        Vector3 grad = Vector3.Normalize(new Vector3(
+                            delta.X / (rxz * rxz),
+                            delta.Y / (ry  * ry),
+                            delta.Z / (rxz * rxz)));
+                        float penetration = MathF.Min((1f - distUnit) * MathF.Min(rxz, ry), 0.15f);
+                        f.ApplyCollisionPush(grad, penetration);
+                    }
+                }
             }
 
             flock.ApplyLeaderExclusion();
@@ -350,10 +445,45 @@ namespace FishSim
                 GraphicsDevice.BlendState = BlendState.Opaque;
             }
 
+            if (showCoralCollision)
+            {
+                GraphicsDevice.BlendState = BlendState.NonPremultiplied;
+                foreach (var (center, rxz, ry) in coralColliders)
+                {
+                    var ellipsoidWorld = Matrix.CreateScale(rxz, ry, rxz)
+                        * Matrix.CreateTranslation(center);
+                    coralCollisionEllipsoid.Draw(ellipsoidWorld, Camera.Main.View, Camera.Main.Projection);
+                }
+                GraphicsDevice.BlendState = BlendState.Opaque;
+            }
+
             foreach (var m in seabedTransforms)
                 seabed.Draw(m, Camera.Main);
 
             seabed.DrawSandPlane(Camera.Main);
+
+            foreach (var coralWorld in coralTransforms)
+            {
+                var worldIT = Matrix.Transpose(Matrix.Invert(coralWorld));
+                var waterAmbient = WaterColorSettings.GetColorAtHeight(coralWorld.Translation.Y);
+                var ambient = Vector3.Lerp(new Vector3(0.30f, 0.30f, 0.32f), waterAmbient, 0.25f);
+                for (int mi = 1; mi < coralModel.Meshes.Count; mi++)
+                {
+                    var mesh = coralModel.Meshes[mi];
+                    foreach (var part in mesh.MeshParts)
+                    {
+                        var eff = part.Effect;
+                        eff.Parameters["World"].SetValue(coralWorld);
+                        eff.Parameters["View"].SetValue(Camera.Main.View);
+                        eff.Parameters["Projection"].SetValue(Camera.Main.Projection);
+                        eff.Parameters["WorldIT"].SetValue(worldIT);
+                        eff.Parameters["AmbientColor"]?.SetValue(ambient);
+                        CausticsSettings.Apply(eff, time);
+                        WaterColorSettings.Apply(eff, Camera.Main.Position);
+                    }
+                    mesh.Draw();
+                }
+            }
 
             particles.Draw(Camera.Main);
 

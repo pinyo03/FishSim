@@ -5,7 +5,8 @@
       "PowerShell(New-Item *)",
       "PowerShell(Get-ChildItem \"graphify-out\" -Force -ErrorAction SilentlyContinue | ForEach-Object { $_.Name })",
       "PowerShell(Get-ChildItem \"graphify-out/obsidian\" -Force -ErrorAction SilentlyContinue | ForEach-Object { $_.Name } | Select-Object -First 30)",
-      "Bash(dotnet build *)"
+      "Bash(dotnet build *)",
+      "PowerShell($bytes = [System.IO.File]::ReadAllBytes\\(\"C:\\\\Asztal\\\\BME\\\\4_felev\\\\Net_jatekfejlesztes\\\\FishSim\\\\FishSim\\\\Content\\\\fungal-coral\\\\source\\\\fungal coral.fbx\"\\); [System.Text.Encoding]::ASCII.GetString\\($bytes[0..20]\\))"
     ]
   }
 }

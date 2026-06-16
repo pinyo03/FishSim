@@ -206,6 +206,26 @@ namespace FishSim
                 }
             }
         }
+        public void ApplyCollisionPush(Vector3 normal, float penetration)
+        {
+            const float restitution = 0.15f;
+            Vector3 centerVel = Vector3.Zero;
+            for (int i = 0; i < verlets.Length; i++)
+                centerVel += verlets[i].Pos - verlets[i].pPos;
+            centerVel /= verlets.Length;
+
+            for (int i = 0; i < verlets.Length; i++)
+                verlets[i].Pos += normal * penetration;
+
+            float velAlongNormal = Vector3.Dot(centerVel, normal);
+            if (velAlongNormal < 0)
+            {
+                Vector3 velCorr = normal * (-velAlongNormal * restitution);
+                for (int i = 0; i < verlets.Length; i++)
+                    verlets[i].pPos += velCorr;
+            }
+        }
+
         private void ApplyForces()
         {
             for (int i = 0; i < verlets.Length; i++)
