@@ -46,6 +46,10 @@ namespace FishSim
         Effect[][] tableCoralEffects;
         int tableCoralPartCount;
 
+        // Oktáns-alapú collision bucket-ek: index = (X≥0?4:0)|(Y≥0?2:0)|(Z≥0?1:0)
+        List<(Vector3 center, float rxz, float ry)>[] _coralBuckets;
+        List<Matrix>[] _tableCoralBuckets;
+
         float _yaw;
         float _pitch;
         const float Sensitivity = 0.003f;
@@ -106,7 +110,7 @@ namespace FishSim
             var flockModel = Content.Load<Model>("tuna-fish/source/TunaFish");
             var flockBoids = new System.Collections.Generic.List<Fish>();
             var spawnRng   = new Random(42);
-            for (int i = 0; i < 120; i++)
+            for (int i = 0; i < 150; i++)
             {
                 Vector3 candidate = Vector3.Zero;
                 bool placed = false;
@@ -194,14 +198,14 @@ namespace FishSim
 
             var coralRng = new Random(123);
             var coralPositions = new List<Vector2>();
-            for (int i = 0; i < 80; i++)
+            for (int i = 0; i < 150; i++)
             {
                 float px = 0, pz = 0;
                 bool placed = false;
                 for (int attempt = 0; attempt < 300; attempt++)
                 {
                     float angle = (float)(coralRng.NextDouble() * MathHelper.TwoPi);
-                    float r = (float)(Math.Sqrt(coralRng.NextDouble()) * 225f);
+                    float r = (float)(Math.Sqrt(coralRng.NextDouble()) * 250f);
                     px = r * MathF.Cos(angle);
                     pz = r * MathF.Sin(angle);
                     bool overlap = false;
@@ -214,7 +218,7 @@ namespace FishSim
 
                 coralPositions.Add(new Vector2(px, pz));
                 float py = seabed.GetHeightAt(px, pz, seabedHeightTransform);
-                float scale = 0.5f + (float)coralRng.NextDouble() * 4.5f;
+                float scale = 1.0f + (float)coralRng.NextDouble() * 4.0f;
                 float rotY = (float)(coralRng.NextDouble() * MathHelper.TwoPi);
                 coralTransforms.Add(
                     Matrix.CreateScale(scale)
@@ -273,14 +277,14 @@ namespace FishSim
 
             var tcRng       = new Random(456);
             var tcPositions = new List<Vector2>();
-            for (int i = 0; i < 80; i++)
+            for (int i = 0; i < 120; i++)
             {
                 float px = 0, pz = 0;
                 bool placed = false;
                 for (int attempt = 0; attempt < 300; attempt++)
                 {
                     float angle = (float)(tcRng.NextDouble() * MathHelper.TwoPi);
-                    float r     = (float)(Math.Sqrt(tcRng.NextDouble()) * 100f);
+                    float r     = (float)(Math.Sqrt(tcRng.NextDouble()) * 150f);
                     px = r * MathF.Cos(angle);
                     pz = r * MathF.Sin(angle);
                     bool overlap = false;
@@ -308,7 +312,41 @@ namespace FishSim
                     * Matrix.CreateTranslation(px, py, pz);
                 tableCoralColliderMatrices.Add(colliderMatrix);
             }
+
+            // Bucket-ek feltöltése – határt átlógó korallok több oktánsba is bekerülnek
+            _coralBuckets = new List<(Vector3, float, float)>[8];
+            for (int i = 0; i < 8; i++) _coralBuckets[i] = new();
+            foreach (var col in coralColliders)
+            {
+                for (int oct = 0; oct < 8; oct++)
+                {
+                    if (((oct & 4) != 0 ? col.center.X + col.rxz > 0 : col.center.X - col.rxz < 0) &&
+                        ((oct & 2) != 0 ? col.center.Y + col.ry  > 0 : col.center.Y - col.ry  < 0) &&
+                        ((oct & 1) != 0 ? col.center.Z + col.rxz > 0 : col.center.Z - col.rxz < 0))
+                        _coralBuckets[oct].Add(col);
+                }
+            }
+
+            _tableCoralBuckets = new List<Matrix>[8];
+            for (int i = 0; i < 8; i++) _tableCoralBuckets[i] = new();
+            foreach (var mat in tableCoralColliderMatrices)
+            {
+                Vector3 pos = mat.Translation;
+                float bx = mat.Right.Length();
+                float by = mat.Up.Length();
+                float bz = mat.Backward.Length();
+                for (int oct = 0; oct < 8; oct++)
+                {
+                    if (((oct & 4) != 0 ? pos.X + bx > 0 : pos.X - bx < 0) &&
+                        ((oct & 2) != 0 ? pos.Y + by > 0 : pos.Y - by < 0) &&
+                        ((oct & 1) != 0 ? pos.Z + bz > 0 : pos.Z - bz < 0))
+                        _tableCoralBuckets[oct].Add(mat);
+                }
+            }
         }
+
+        static int Octant(Vector3 pos) =>
+            (pos.X >= 0 ? 4 : 0) | (pos.Y >= 0 ? 2 : 0) | (pos.Z >= 0 ? 1 : 0);
 
         static Vector3 RandomOnUnitSphere(Random rng)
         {
@@ -346,7 +384,19 @@ namespace FishSim
             var up    = ks.IsKeyDown(Keys.Q);
             var down  = ks.IsKeyDown(Keys.E);
 
-            if (tab && tabReleased) { fishCam = !fishCam; tabReleased = false; }
+            if (tab && tabReleased)
+            {
+                fishCam = !fishCam;
+                tabReleased = false;
+                if (!fishCam)
+                {
+                    // Átváltáskor _yaw/_pitch-et a kamera tényleges nézési irányából számolom,
+                    // különben 180°-os ugrás lenne (fish-cam orbit iránya az ellentéte a look iránynak)
+                    var dir = Camera.Main.Direction;
+                    _yaw   = MathF.Atan2(dir.X, dir.Z);
+                    _pitch = MathF.Asin(MathHelper.Clamp(dir.Y, -1f, 1f));
+                }
+            }
             else if (!tab) tabReleased = true;
 
             var f1 = ks.IsKeyDown(Keys.F1);
@@ -446,7 +496,7 @@ namespace FishSim
                 var lookDir = DirectionFromAngles(_yaw, _pitch);
                 Camera.Main.Direction = lookDir;
 
-                var speed = shift ? 0.1f : 0.01f;
+                var speed = shift ? 1.0f : 0.1f;
 
                 // Horizontal forward vector — no vertical drift when looking up/down
                 var flat = new Vector3(lookDir.X, 0, lookDir.Z);
@@ -470,7 +520,8 @@ namespace FishSim
                 f.Step(seabed, seabedHeightTransform);
                 f.UpdateAnimation(gameTime);
 
-                foreach (var (center, rxz, ry) in coralColliders)
+                int fishOct = Octant(f.Position);
+                foreach (var (center, rxz, ry) in _coralBuckets[fishOct])
                 {
                     Vector3 delta = f.Position - center;
                     const float fishR = 1.0f;
@@ -489,7 +540,7 @@ namespace FishSim
                     }
                 }
 
-                foreach (var collMat in tableCoralColliderMatrices)
+                foreach (var collMat in _tableCoralBuckets[fishOct])
                 {
                     Matrix collMat2 = collMat;
                     Matrix.Invert(ref collMat2, out Matrix collInv);
