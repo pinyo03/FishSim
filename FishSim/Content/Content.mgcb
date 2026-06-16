@@ -14,6 +14,18 @@
 
 #---------------------------------- Content ---------------------------------#
 
+#begin ../../Pictures/coral/Textures/coral fbx_lambert1_BaseColor.png
+/importer:TextureImporter
+/processor:TextureProcessor
+/processorParam:ColorKeyColor=255,0,255,255
+/processorParam:ColorKeyEnabled=True
+/processorParam:GenerateMipmaps=False
+/processorParam:PremultiplyAlpha=True
+/processorParam:ResizeToPowerOfTwo=False
+/processorParam:MakeSquare=False
+/processorParam:TextureFormat=Color
+/build:../../Pictures/coral/Textures/coral fbx_lambert1_BaseColor.png;Pictures/coral/Textures/coral fbx_lambert1_BaseColor_0
+
 #begin ../FishLit.fx
 /importer:EffectImporter
 /processor:EffectProcessor
@@ -31,18 +43,6 @@
 /processor:EffectProcessor
 /processorParam:DebugMode=Auto
 /build:../Sky.fx;Sky.fx
-
-#begin ../../Pictures/coral/Textures/coral fbx_lambert1_BaseColor.png
-/importer:TextureImporter
-/processor:TextureProcessor
-/processorParam:ColorKeyColor=255,0,255,255
-/processorParam:ColorKeyEnabled=True
-/processorParam:GenerateMipmaps=False
-/processorParam:PremultiplyAlpha=True
-/processorParam:ResizeToPowerOfTwo=False
-/processorParam:MakeSquare=False
-/processorParam:TextureFormat=Color
-/build:../../Pictures/coral/Textures/coral fbx_lambert1_BaseColor.png;Pictures/coral/Textures/coral fbx_lambert1_BaseColor_0
 
 #begin coral-piece/source/coral fbx finished.fbx
 /importer:FbxImporter
@@ -146,6 +146,193 @@
 /processorParam:MakeSquare=False
 /processorParam:TextureFormat=Color
 /build:seabedColor.jpg
+
+#begin table-coral/source/jeweled disk.fbx
+/importer:FbxImporter
+/processor:ModelProcessor
+/processorParam:ColorKeyColor=0,0,0,0
+/processorParam:ColorKeyEnabled=True
+/processorParam:DefaultEffect=BasicEffect
+/processorParam:GenerateMipmaps=True
+/processorParam:GenerateTangentFrames=True
+/processorParam:PremultiplyTextureAlpha=True
+/processorParam:PremultiplyVertexColors=True
+/processorParam:ResizeTexturesToPowerOfTwo=False
+/processorParam:RotationX=0
+/processorParam:RotationY=0
+/processorParam:RotationZ=0
+/processorParam:Scale=1
+/processorParam:SwapWindingOrder=False
+/processorParam:TextureFormat=Compressed
+/build:table-coral/source/jeweled disk.fbx;table-coral/source/jeweled disk
+
+#begin table-coral/source/Texture2D/Coral_reef_jeweled_disk_01_blue.png
+/importer:TextureImporter
+/processor:TextureProcessor
+/processorParam:ColorKeyColor=255,0,255,255
+/processorParam:ColorKeyEnabled=True
+/processorParam:GenerateMipmaps=False
+/processorParam:PremultiplyAlpha=True
+/processorParam:ResizeToPowerOfTwo=False
+/processorParam:MakeSquare=False
+/processorParam:TextureFormat=Color
+/build:table-coral/source/Texture2D/Coral_reef_jeweled_disk_01_blue.png;table-coral/source/Texture2D/Coral_reef_jeweled_disk_01_blue
+
+#begin table-coral/source/Texture2D/Coral_reef_jeweled_disk_01_green.png
+/importer:TextureImporter
+/processor:TextureProcessor
+/processorParam:ColorKeyColor=255,0,255,255
+/processorParam:ColorKeyEnabled=True
+/processorParam:GenerateMipmaps=False
+/processorParam:PremultiplyAlpha=True
+/processorParam:ResizeToPowerOfTwo=False
+/processorParam:MakeSquare=False
+/processorParam:TextureFormat=Color
+/build:table-coral/source/Texture2D/Coral_reef_jeweled_disk_01_green.png;table-coral/source/Texture2D/Coral_reef_jeweled_disk_01_green
+
+#begin table-coral/source/Texture2D/Coral_reef_jeweled_disk_01_illum.png
+/importer:TextureImporter
+/processor:TextureProcessor
+/processorParam:ColorKeyColor=255,0,255,255
+/processorParam:ColorKeyEnabled=True
+/processorParam:GenerateMipmaps=False
+/processorParam:PremultiplyAlpha=True
+/processorParam:ResizeToPowerOfTwo=False
+/processorParam:MakeSquare=False
+/processorParam:TextureFormat=Color
+/build:table-coral/source/Texture2D/Coral_reef_jeweled_disk_01_illum.png;table-coral/source/Texture2D/Coral_reef_jeweled_disk_01_illum
+
+#begin table-coral/source/Texture2D/Coral_reef_jeweled_disk_01_normal.png
+/importer:TextureImporter
+/processor:TextureProcessor
+/processorParam:ColorKeyColor=255,0,255,255
+/processorParam:ColorKeyEnabled=True
+/processorParam:GenerateMipmaps=False
+/processorParam:PremultiplyAlpha=True
+/processorParam:ResizeToPowerOfTwo=False
+/processorParam:MakeSquare=False
+/processorParam:TextureFormat=Color
+/build:table-coral/source/Texture2D/Coral_reef_jeweled_disk_01_normal.png;table-coral/source/Texture2D/Coral_reef_jeweled_disk_01_normal
+
+#begin table-coral/source/Texture2D/Coral_reef_jeweled_disk_01_purple.png
+/importer:TextureImporter
+/processor:TextureProcessor
+/processorParam:ColorKeyColor=255,0,255,255
+/processorParam:ColorKeyEnabled=True
+/processorParam:GenerateMipmaps=False
+/processorParam:PremultiplyAlpha=True
+/processorParam:ResizeToPowerOfTwo=False
+/processorParam:MakeSquare=False
+/processorParam:TextureFormat=Color
+/build:table-coral/source/Texture2D/Coral_reef_jeweled_disk_01_purple.png;table-coral/source/Texture2D/Coral_reef_jeweled_disk_01_purple
+
+#begin table-coral/source/Texture2D/Coral_reef_jeweled_disk_01_red.png
+/importer:TextureImporter
+/processor:TextureProcessor
+/processorParam:ColorKeyColor=255,0,255,255
+/processorParam:ColorKeyEnabled=True
+/processorParam:GenerateMipmaps=False
+/processorParam:PremultiplyAlpha=True
+/processorParam:ResizeToPowerOfTwo=False
+/processorParam:MakeSquare=False
+/processorParam:TextureFormat=Color
+/build:table-coral/source/Texture2D/Coral_reef_jeweled_disk_01_red.png;table-coral/source/Texture2D/Coral_reef_jeweled_disk_01_red
+
+#begin table-coral/source/Texture2D/Coral_reef_jeweled_disk_01_spec.png
+/importer:TextureImporter
+/processor:TextureProcessor
+/processorParam:ColorKeyColor=255,0,255,255
+/processorParam:ColorKeyEnabled=True
+/processorParam:GenerateMipmaps=False
+/processorParam:PremultiplyAlpha=True
+/processorParam:ResizeToPowerOfTwo=False
+/processorParam:MakeSquare=False
+/processorParam:TextureFormat=Color
+/build:table-coral/source/Texture2D/Coral_reef_jeweled_disk_01_spec.png;table-coral/source/Texture2D/Coral_reef_jeweled_disk_01_spec
+
+#begin table-coral/textures/Coral_reef_jeweled_disk_01_blue.png
+/importer:TextureImporter
+/processor:TextureProcessor
+/processorParam:ColorKeyColor=255,0,255,255
+/processorParam:ColorKeyEnabled=True
+/processorParam:GenerateMipmaps=False
+/processorParam:PremultiplyAlpha=True
+/processorParam:ResizeToPowerOfTwo=False
+/processorParam:MakeSquare=False
+/processorParam:TextureFormat=Color
+/build:table-coral/textures/Coral_reef_jeweled_disk_01_blue.png;table-coral/textures/Coral_reef_jeweled_disk_01_blue
+
+#begin table-coral/textures/Coral_reef_jeweled_disk_01_green.png
+/importer:TextureImporter
+/processor:TextureProcessor
+/processorParam:ColorKeyColor=255,0,255,255
+/processorParam:ColorKeyEnabled=True
+/processorParam:GenerateMipmaps=False
+/processorParam:PremultiplyAlpha=True
+/processorParam:ResizeToPowerOfTwo=False
+/processorParam:MakeSquare=False
+/processorParam:TextureFormat=Color
+/build:table-coral/textures/Coral_reef_jeweled_disk_01_green.png;table-coral/textures/Coral_reef_jeweled_disk_01_green
+
+#begin table-coral/textures/Coral_reef_jeweled_disk_01_illum.png
+/importer:TextureImporter
+/processor:TextureProcessor
+/processorParam:ColorKeyColor=255,0,255,255
+/processorParam:ColorKeyEnabled=True
+/processorParam:GenerateMipmaps=False
+/processorParam:PremultiplyAlpha=True
+/processorParam:ResizeToPowerOfTwo=False
+/processorParam:MakeSquare=False
+/processorParam:TextureFormat=Color
+/build:table-coral/textures/Coral_reef_jeweled_disk_01_illum.png;table-coral/textures/Coral_reef_jeweled_disk_01_illum
+
+#begin table-coral/textures/Coral_reef_jeweled_disk_01_normal.png
+/importer:TextureImporter
+/processor:TextureProcessor
+/processorParam:ColorKeyColor=255,0,255,255
+/processorParam:ColorKeyEnabled=True
+/processorParam:GenerateMipmaps=False
+/processorParam:PremultiplyAlpha=True
+/processorParam:ResizeToPowerOfTwo=False
+/processorParam:MakeSquare=False
+/processorParam:TextureFormat=Color
+/build:table-coral/textures/Coral_reef_jeweled_disk_01_normal.png;table-coral/textures/Coral_reef_jeweled_disk_01_normal
+
+#begin table-coral/textures/Coral_reef_jeweled_disk_01_purple.png
+/importer:TextureImporter
+/processor:TextureProcessor
+/processorParam:ColorKeyColor=255,0,255,255
+/processorParam:ColorKeyEnabled=True
+/processorParam:GenerateMipmaps=False
+/processorParam:PremultiplyAlpha=True
+/processorParam:ResizeToPowerOfTwo=False
+/processorParam:MakeSquare=False
+/processorParam:TextureFormat=Color
+/build:table-coral/textures/Coral_reef_jeweled_disk_01_purple.png;table-coral/textures/Coral_reef_jeweled_disk_01_purple
+
+#begin table-coral/textures/Coral_reef_jeweled_disk_01_red.png
+/importer:TextureImporter
+/processor:TextureProcessor
+/processorParam:ColorKeyColor=255,0,255,255
+/processorParam:ColorKeyEnabled=True
+/processorParam:GenerateMipmaps=False
+/processorParam:PremultiplyAlpha=True
+/processorParam:ResizeToPowerOfTwo=False
+/processorParam:MakeSquare=False
+/processorParam:TextureFormat=Color
+/build:table-coral/textures/Coral_reef_jeweled_disk_01_red.png;table-coral/textures/Coral_reef_jeweled_disk_01_red
+
+#begin table-coral/textures/Coral_reef_jeweled_disk_01_spec.png
+/importer:TextureImporter
+/processor:TextureProcessor
+/processorParam:ColorKeyColor=255,0,255,255
+/processorParam:ColorKeyEnabled=True
+/processorParam:GenerateMipmaps=False
+/processorParam:PremultiplyAlpha=True
+/processorParam:ResizeToPowerOfTwo=False
+/processorParam:MakeSquare=False
+/processorParam:TextureFormat=Color
+/build:table-coral/textures/Coral_reef_jeweled_disk_01_spec.png;table-coral/textures/Coral_reef_jeweled_disk_01_spec
 
 #begin tuna-fish/source/EYS_Material_BaseColor.png
 /importer:TextureImporter

@@ -40,6 +40,12 @@ namespace FishSim
         bool showCoralCollision = false;
         bool f3Released = true;
 
+        Model tableCoralModel;
+        List<(Matrix transform, int colorIdx)> tableCoralInstances = new();
+        List<Matrix> tableCoralColliderMatrices = new();
+        Effect[][] tableCoralEffects;
+        int tableCoralPartCount;
+
         float _yaw;
         float _pitch;
         const float Sensitivity = 0.003f;
@@ -223,6 +229,85 @@ namespace FishSim
             coralCollisionEllipsoid = BasicGeometry.CreateSphere(GraphicsDevice);
             coralCollisionEllipsoid.Effect.DiffuseColor = Color.Orange.ToVector3();
             coralCollisionEllipsoid.Effect.Alpha = 0.5f;
+
+            tableCoralModel = Content.Load<Model>("table-coral/source/jeweled disk");
+            var tcColorTex = new Texture2D[]
+            {
+                Content.Load<Texture2D>("table-coral/textures/Coral_reef_jeweled_disk_01_blue"),
+                Content.Load<Texture2D>("table-coral/textures/Coral_reef_jeweled_disk_01_green"),
+                Content.Load<Texture2D>("table-coral/textures/Coral_reef_jeweled_disk_01_purple"),
+                Content.Load<Texture2D>("table-coral/textures/Coral_reef_jeweled_disk_01_red"),
+            };
+            var tcNormalTex  = Content.Load<Texture2D>("table-coral/textures/Coral_reef_jeweled_disk_01_normal");
+            var tcSpecTex    = Content.Load<Texture2D>("table-coral/textures/Coral_reef_jeweled_disk_01_spec");
+            var tcBlackMetal = new Texture2D(GraphicsDevice, 1, 1);
+            tcBlackMetal.SetData(new[] { Color.Black });
+
+            tableCoralPartCount = 0;
+            foreach (var mesh in tableCoralModel.Meshes) tableCoralPartCount += mesh.MeshParts.Count;
+
+            var tcBaseEffect = Content.Load<Effect>("FishLit");
+            tableCoralEffects = new Effect[4][];
+            for (int ci = 0; ci < 4; ci++)
+            {
+                tableCoralEffects[ci] = new Effect[tableCoralPartCount];
+                int pi = 0;
+                foreach (var mesh in tableCoralModel.Meshes)
+                    foreach (var part in mesh.MeshParts)
+                    {
+                        var eff = tcBaseEffect.Clone();
+                        eff.Parameters["Texture"].SetValue(tcColorTex[ci]);
+                        eff.Parameters["NormalTexture"].SetValue(tcNormalTex);
+                        eff.Parameters["MetallicTexture"].SetValue(tcBlackMetal);
+                        eff.Parameters["RoughnessTexture"].SetValue(tcSpecTex);
+                        eff.Parameters["AOTexture"].SetValue(whiteAO);
+                        eff.Parameters["HasAO"].SetValue(false);
+                        eff.Parameters["AmbientColor"].SetValue(new Vector3(0.30f, 0.30f, 0.32f));
+                        eff.Parameters["Light0Dir"].SetValue(Vector3.Normalize(-sky.SunDir));
+                        eff.Parameters["Light0Color"].SetValue(new Vector3(0.75f, 0.78f, 0.80f));
+                        eff.Parameters["Light1Dir"].SetValue(Vector3.Down);
+                        eff.Parameters["Light1Color"].SetValue(new Vector3(0.12f, 0.13f, 0.15f));
+                        tableCoralEffects[ci][pi++] = eff;
+                    }
+            }
+
+            var tcRng       = new Random(456);
+            var tcPositions = new List<Vector2>();
+            for (int i = 0; i < 80; i++)
+            {
+                float px = 0, pz = 0;
+                bool placed = false;
+                for (int attempt = 0; attempt < 300; attempt++)
+                {
+                    float angle = (float)(tcRng.NextDouble() * MathHelper.TwoPi);
+                    float r     = (float)(Math.Sqrt(tcRng.NextDouble()) * 100f);
+                    px = r * MathF.Cos(angle);
+                    pz = r * MathF.Sin(angle);
+                    bool overlap = false;
+                    foreach (var cp in tcPositions)
+                        if ((new Vector2(cp.X - px, cp.Y - pz)).Length() < 10f)
+                        { overlap = true; break; }
+                    if (!overlap) { placed = true; break; }
+                }
+                if (!placed) continue;
+
+                tcPositions.Add(new Vector2(px, pz));
+                float py      = seabed.GetHeightAt(px, pz, seabedHeightTransform);
+                float scale   = 2.0f + (float)tcRng.NextDouble() * 3.25f;
+                float rotY    = (float)(tcRng.NextDouble() * MathHelper.TwoPi);
+                int   colorIdx = tcRng.Next(4);
+                tableCoralInstances.Add((
+                    Matrix.CreateScale(scale)
+                    * Matrix.CreateRotationX(-MathHelper.PiOver2)
+                    * Matrix.CreateRotationY(rotY)
+                    * Matrix.CreateTranslation(px, py, pz),
+                    colorIdx));
+                var colliderMatrix = Matrix.CreateScale(scale * 0.6f, scale * 0.28f, scale * 0.9f)
+                    * Matrix.CreateRotationX(-MathHelper.PiOver2)
+                    * Matrix.CreateRotationY(rotY)
+                    * Matrix.CreateTranslation(px, py, pz);
+                tableCoralColliderMatrices.Add(colliderMatrix);
+            }
         }
 
         static Vector3 RandomOnUnitSphere(Random rng)
@@ -403,6 +488,22 @@ namespace FishSim
                         f.ApplyCollisionPush(grad, penetration);
                     }
                 }
+
+                foreach (var collMat in tableCoralColliderMatrices)
+                {
+                    Matrix collMat2 = collMat;
+                    Matrix.Invert(ref collMat2, out Matrix collInv);
+                    Vector3 localPos = Vector3.Transform(f.Position, collInv);
+                    float minScale = MathF.Min(collMat.Right.Length(), MathF.Min(collMat.Up.Length(), collMat.Backward.Length()));
+                    float distUnit = localPos.Length();
+                    if (distUnit < 1f && distUnit > 0.0001f)
+                    {
+                        Vector3 localGrad = Vector3.Normalize(localPos);
+                        Vector3 worldGrad = Vector3.Normalize(Vector3.TransformNormal(localGrad, Matrix.Transpose(collInv)));
+                        float penetration = MathF.Min((1f - distUnit) * minScale, 0.15f);
+                        f.ApplyCollisionPush(worldGrad, penetration);
+                    }
+                }
             }
 
             flock.ApplyLeaderExclusion();
@@ -454,6 +555,8 @@ namespace FishSim
                         * Matrix.CreateTranslation(center);
                     coralCollisionEllipsoid.Draw(ellipsoidWorld, Camera.Main.View, Camera.Main.Projection);
                 }
+                foreach (var collMat in tableCoralColliderMatrices)
+                    coralCollisionEllipsoid.Draw(collMat, Camera.Main.View, Camera.Main.Projection);
                 GraphicsDevice.BlendState = BlendState.Opaque;
             }
 
@@ -474,6 +577,33 @@ namespace FishSim
                     {
                         var eff = part.Effect;
                         eff.Parameters["World"].SetValue(coralWorld);
+                        eff.Parameters["View"].SetValue(Camera.Main.View);
+                        eff.Parameters["Projection"].SetValue(Camera.Main.Projection);
+                        eff.Parameters["WorldIT"].SetValue(worldIT);
+                        eff.Parameters["AmbientColor"]?.SetValue(ambient);
+                        CausticsSettings.Apply(eff, time);
+                        WaterColorSettings.Apply(eff, Camera.Main.Position);
+                    }
+                    mesh.Draw();
+                }
+            }
+
+            foreach (var (tcWorld, colorIdx) in tableCoralInstances)
+            {
+                int pi = 0;
+                foreach (var mesh in tableCoralModel.Meshes)
+                    foreach (var part in mesh.MeshParts)
+                        part.Effect = tableCoralEffects[colorIdx][pi++];
+
+                var worldIT      = Matrix.Transpose(Matrix.Invert(tcWorld));
+                var waterAmbient = WaterColorSettings.GetColorAtHeight(tcWorld.Translation.Y);
+                var ambient      = Vector3.Lerp(new Vector3(0.30f, 0.30f, 0.32f), waterAmbient, 0.25f);
+                foreach (var mesh in tableCoralModel.Meshes)
+                {
+                    foreach (var part in mesh.MeshParts)
+                    {
+                        var eff = part.Effect;
+                        eff.Parameters["World"].SetValue(tcWorld);
                         eff.Parameters["View"].SetValue(Camera.Main.View);
                         eff.Parameters["Projection"].SetValue(Camera.Main.Projection);
                         eff.Parameters["WorldIT"].SetValue(worldIT);
